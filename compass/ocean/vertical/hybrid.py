@@ -58,6 +58,7 @@ def init_hybrid_vertical_coord(config, ds):
         A data set containing ``bottomDepth`` and ``ssh`` variables used to
         construct the vertical coordinate
     """
+    # --- Begin with initialization of z-star coordinate ---
     add_1d_grid(config, ds)
 
     ds['vertCoordMovementWeights'] = xarray.ones_like(ds.refBottomDepth)
@@ -83,7 +84,99 @@ def init_hybrid_vertical_coord(config, ds):
         ds.maxLevelCell)
 
     haney_cell, haney_edge = compute_haney_number(
-        ds, ds.layerThickness, ds.ssh, show_progress=True)    
+        ds, ds.layerThickness, ds.ssh, show_progress=True)
+
+    # --- Drop layers to stay within slope and thickness bounds ---
+    nEdges = ds.sizes['nEdges']
+    nCells = ds.sizes['nCells']
+    nVertLevels = ds.sizes['nVertLevels']
+
+    xCell = ds.xCell.values
+    yCell = ds.yCell.values
+
+    minLevelCell = ds.minLevelCell - 1
+    maxLevelCell = ds.maxLevelCell - 1
+    edgesOnCell = ds.edgesOnCell - 1
+
+    cellsOnEdge = ds.cellsOnEdge - 1
+    internal_mask = numpy.logical_and(cellsOnEdge[:, 0] >= 0,
+                                      cellsOnEdge[:, 1] >= 1)
+    cell0 = cellsOnEdge[:, 0].values
+    cell1 = cellsOnEdge[:, 1].values
+    cell0 = cell0[internal_mask]
+    cell1 = cell1[internal_mask]
+
+    vert_index = \
+        xarray.DataArray.from_dict({'dims': ('nVertLevels',),
+                                    'data': numpy.arange(nVertLevels)})
+
+    cell_mask = numpy.logical_and(vert_index >= minLevelCell,
+                                  vert_index <= maxLevelCell)
+
+    ssh = ds.ssh
+    if 'Time' in ssh.dims:
+        ssh = ssh.isel(Time=0)
+    ssh = ssh.values
+    bottomDepth = ds.bottomDepth.values
+
+    layerThickness = ds.layerThickness.where(cell_mask, 0.).values
+    nIters = 1
+    dzdx_thresh = 1e2/1e4 # 100m/10km
+    for iIter in range(nIters):
+
+        # Update minLevelCell
+        # NOTE currently testing with sub-ice-shelf 2d case
+        #for edgeIndex,cell0Index in enumerate(cell0):
+        for edgeIndex in range(len(cell0)):
+            cell0Index = cell0[edgeIndex]
+            cell1Index = cell1[edgeIndex]
+            z0 = (  ssh[cell0Index]
+                  - 0.5*layerThickness[cell0Index,minLevelCell[cell0Index]]) 
+            z1 = (  ssh[cell1Index]
+                  - 0.5*layerThickness[cell1Index,minLevelCell[cell1Index]]) 
+            dz = z0 - z1
+            dx = numpy.sqrt(  numpy.square(xCell[cell0Index]
+                                         - xCell[cell1Index])
+                            + numpy.square(yCell[cell0Index]
+                                         - yCell[cell1Index]))
+            if (dz/dx > dzdx_thresh):
+               minLevelCell[cell1Index] = min(nVertLevels - 1,
+                                              minLevelCell[cell1Index] + 1)
+            elif (dz/dx < -1*dzdx_thresh):
+               minLevelCell[cell0Index] = min(nVertLevels - 1,
+                                              minLevelCell[cell0Index] + 1)
+
+        # Update maxLevelCell
+        # TODO needs to be tested with sloped bed
+        for edgeIndex in range(len(cell0)):
+            cell0Index = cell0[edgeIndex]
+            cell1Index = cell1[edgeIndex]
+            z0 = ( -1.0*bottomDepth[cell0Index]
+                  + 0.5*layerThickness[cell0Index,maxLevelCell[cell0Index]]) 
+            z1 = ( -1.0*bottomDepth[cell1Index]
+                  + 0.5*layerThickness[cell1Index,maxLevelCell[cell1Index]]) 
+            dz = z0 - z1
+            dx = numpy.sqrt(  numpy.square(xCell[cell0Index]
+                                         - xCell[cell1Index])
+                            + numpy.square(yCell[cell0Index]
+                                         - yCell[cell1Index]))
+            if (dz/dx > dzdx_thresh):
+               maxLevelCell[cell0Index] = max(0, maxLevelCell[cell0Index] - 1)
+            elif (dz/dx < -1*dzdx_thresh):
+               maxLevelCell[cell1Index] = max(0, maxLevelCell[cell1Index] - 1)
+
+        ds['layerThickness'] = _compute_z_star_layer_thickness(
+            ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
+            ds.maxLevelCell)
+
+        cell_mask = numpy.logical_and(vert_index >= minLevelCell,
+                                      vert_index <= maxLevelCell)
+        layerThickness = ds.layerThickness.where(cell_mask, 0.).values
+
+    haney_cell, haney_edge = compute_haney_number(
+        ds, ds.layerThickness, ds.ssh, show_progress=True)
+
+    
 
 def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
                                     minLevelCell, maxLevelCell):
@@ -115,17 +208,31 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
     """
 
     nVertLevels = restingThickness.sizes['nVertLevels']
+    refThickness = []
     layerThickness = []
 
-    layerStretch = (ssh + bottomDepth) / bottomDepth
     for zIndex in range(nVertLevels):
         mask = numpy.logical_and(zIndex >= minLevelCell,
                                  zIndex <= maxLevelCell)
+        thickness = restingThickness.isel(nVertLevels=zIndex)
+        thickness = thickness.where(mask, 0.)
+        refThickness.append(thickness)
+
+    # layers should be stretched according to 
+    # sum_k(restingThickness(k)),k=minLevelCell,maxLevelCell 
+    # which can be != bottomDepth in contrast to previous implementation
+    refThickness = xarray.concat(refThickness, dim='nVertLevels')
+    H_new = refThickness.sum(dim='nVertLevels')
+
+    layerStretch = (ssh + bottomDepth) / H_new
+
+    for zIndex in range(nVertLevels):
         thickness = layerStretch*restingThickness.isel(nVertLevels=zIndex)
         thickness = thickness.where(mask, 0.)
         layerThickness.append(thickness)
     layerThickness = xarray.concat(layerThickness, dim='nVertLevels')
     layerThickness = layerThickness.transpose('nCells', 'nVertLevels')
+
     return layerThickness
 
 
