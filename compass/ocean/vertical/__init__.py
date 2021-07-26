@@ -3,6 +3,7 @@ import xarray
 
 from compass.ocean.vertical.zlevel import init_z_level_vertical_coord
 from compass.ocean.vertical.zstar import init_z_star_vertical_coord
+from compass.ocean.vertical.hybrid import init_hybrid_vertical_coord
 
 
 def init_vertical_coord(config, ds):
@@ -74,6 +75,9 @@ def init_vertical_coord(config, ds):
         init_z_star_vertical_coord(config, ds)
     elif coord_type == 'haney-number':
         raise ValueError('Haney Number coordinate not yet supported.')
+    elif coord_type == 'hybrid':
+        #raise ValueError('Hybrid z-star coordinate not yet supported.')
+        init_hybrid_vertical_coord(config, ds)
     else:
         raise ValueError('Unknown coordinate type {}'.format(coord_type))
 

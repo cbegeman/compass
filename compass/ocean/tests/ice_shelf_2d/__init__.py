@@ -15,7 +15,7 @@ class IceShelf2d(TestGroup):
         super().__init__(mpas_core=mpas_core, name='ice_shelf_2d')
 
         for resolution in ['5km']:
-            for coord_type in ['z-star', 'z-level']:
+            for coord_type in ['z-star', 'z-level', 'hybrid']:
                 self.add_test_case(
                     Default(test_group=self, resolution=resolution,
                             coord_type=coord_type))
