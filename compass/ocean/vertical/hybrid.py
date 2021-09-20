@@ -96,8 +96,8 @@ def init_hybrid_vertical_coord(config, ds):
     xCell = ds.xCell.values
     yCell = ds.yCell.values
 
-    minLevelCell = ds.minLevelCell - 1
-    maxLevelCell = ds.maxLevelCell - 1
+    minLevelCell = ds.minLevelCell
+    maxLevelCell = ds.maxLevelCell
     edgesOnCell = ds.edgesOnCell - 1
 
     cellsOnEdge = ds.cellsOnEdge - 1
@@ -120,9 +120,25 @@ def init_hybrid_vertical_coord(config, ds):
 
     minLevels = 3
     minLayerThickness = 25
-    nIters = 1
+    nIters = 0
     dzdx_thresh = 1e2/1e4 # 100m/10km
     #dzdx_thresh = 1e3/1e4 # no violations for ice-shelf-2d
+
+    for iIter in range(nVertLevels-minLevels):
+        cell_mask = numpy.logical_and(vert_index >= minLevelCell,
+                                      vert_index <= maxLevelCell)
+
+        layerThickness = ds.layerThickness.where(cell_mask, 0.).values
+        for cellIndex in range(nCells):
+            if any(layerThickness[cellIndex,minLevelCell[cellIndex].values:maxLevelCell[cellIndex].values]
+                   < minLayerThickness):
+                maxLevelCell[cellIndex] = max(minLevels, maxLevelCell[cellIndex] - 1)
+        ds['minLevelCell'] = minLevelCell
+        ds['maxLevelCell'] = maxLevelCell
+        ds['layerThickness'] = _compute_z_star_layer_thickness(
+            ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
+            ds.maxLevelCell)
+    
     for iIter in range(nIters):
         cell_mask = numpy.logical_and(vert_index >= minLevelCell,
                                       vert_index <= maxLevelCell)
@@ -132,27 +148,35 @@ def init_hybrid_vertical_coord(config, ds):
         # Update minLevelCell
         # NOTE currently testing with sub-ice-shelf 2d case
         #for edgeIndex,cell0Index in enumerate(cell0):
-        for edgeIndex in range(len(cell0)):
+        for edgeIndex in range(len(cell0)): # replace with nEdges
             cell0Index = cell0[edgeIndex]
             cell1Index = cell1[edgeIndex]
+            # if the edge is on the edge of the domain, don't evaluate
+            if min(minLevelCell[cell0Index].values,minLevelCell[cell0Index].values) == -1:
+                continue
+            # evaluate slope of the first continuous layer across edge
+            minLevelEdgeBot = max(minLevelCell[cell0Index].values,minLevelCell[cell1Index].values)
             z0 = (  ssh[cell0Index]
-                  - 0.5*layerThickness[cell0Index,minLevelCell[cell0Index]]) 
+                  - sum(layerThickness[cell0Index,minLevelCell[cell0Index].values:minLevelEdgeBot])
+                  - 0.5*layerThickness[cell0Index,minLevelEdgeBot])
             z1 = (  ssh[cell1Index]
-                  - 0.5*layerThickness[cell1Index,minLevelCell[cell1Index]]) 
-            dz = z0 - z1
-            dx = numpy.sqrt(  numpy.square(xCell[cell0Index]
-                                         - xCell[cell1Index])
-                            + numpy.square(yCell[cell0Index]
+                  - sum(layerThickness[cell1Index,minLevelCell[cell1Index].values:minLevelEdgeBot])
+                  - 0.5*layerThickness[cell1Index,minLevelEdgeBot])
+            slope[edgeIndex] = (z0 - z1) / numpy.sqrt(  
+                               numpy.square(xCell[cell0Index]
+                                          - xCell[cell1Index])
+                             + numpy.square(yCell[cell0Index]
                                          - yCell[cell1Index]))
+       for 
             if (dz/dx > dzdx_thresh):
-               print('drop top layer at y = {}, mlc = {}'.format(
-                   yCell[cell1Index], minLevelCell[cell1Index].values))
-               minLevelCell[cell1Index] = min(nVertLevels - 1,
+               print('drop top layer at y = {}, mlc = {}, dz/dx = {}'.format(
+                   yCell[cell1Index], minLevelEdgeBot, dz/dx))
+               minLevelCell[cell1Index] = min(nVertLevels - minLevels,
                                               minLevelCell[cell1Index] + 1)
             elif (dz/dx < -1*dzdx_thresh):
-               print('drop top layer at y = {}, mlc = {}'.format(
-                   yCell[cell0Index], minLevelCell[cell0Index].values))
-               minLevelCell[cell0Index] = min(nVertLevels - 1,
+               print('drop top layer at y = {}, mlc = {}, dz/dx = {}'.format(
+                   yCell[cell0Index], minLevelEdgeBot, dz/dx))
+               minLevelCell[cell0Index] = min(nVertLevels - minLevels,
                                               minLevelCell[cell0Index] + 1)
 
         # Update maxLevelCell
@@ -174,34 +198,27 @@ def init_hybrid_vertical_coord(config, ds):
             elif (dz/dx < -1*dzdx_thresh):
                maxLevelCell[cell1Index] = max(minLevels, maxLevelCell[cell1Index] - 1)
 
-        ds['minLevelCell'] = minLevelCell + 1
-        ds['maxLevelCell'] = maxLevelCell + 1
         ds['layerThickness'] = _compute_z_star_layer_thickness(
             ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
             ds.maxLevelCell)
-        for iCell in range(nCells):
-            if (minLevelCell[iCell] > 0):
-                #print('ssh = {}, zMid = {}'.format(
-                #      ssh[iCell,minLevelCell[iCell]],
-                #      ds.zMid[iCell,minLevelCell[iCell]].values))
-                print('h_old = {}, h_new = {}'.format(
-                      layerThickness[iCell,minLevelCell[iCell]],
-                      ds.layerThickness[iCell,minLevelCell[iCell]].values))
-                break
+
+    H_target = (ssh + bottomDepth)
+    H = ds.layerThickness.sum(dim='nVertLevels')
+    for iCell in range(nCells):
+        if abs(H[iCell] - H_target[iCell]) > 1e-5:
+            print('hybrid: H = {}, H_topo = {}'.format(H[iCell],H_target[iCell]))
+        #for iCell in range(nCells):
+        #    if (minLevelCell[iCell] > 0):
+        #        #print('ssh = {}, zMid = {}'.format(
+        #        #      ssh[iCell,minLevelCell[iCell]],
+        #        #      ds.zMid[iCell,minLevelCell[iCell]].values))
+        #        print('h_old = {}, h_new = {}'.format(
+        #              layerThickness[iCell,minLevelCell[iCell]],
+        #              ds.layerThickness[iCell,minLevelCell[iCell]].values))
+        #        break
 
     haney_cell, haney_edge = compute_haney_number(
         ds, ds.layerThickness, ds.ssh, show_progress=True)
-    
-    #for iIter in range(nIters):
-    #    for cellIndex in range(nCells):
-    #        if any(layerThickness[cellIndex,minLevelCell[cellIndex]:maxLevelCell[cellIndex]] < minLayerThickness):
-    #            maxLevelCell[cellIndex] = max(minLevels, maxLevelCell[cellIndex] - 1)
-    #    ds['minLevelCell'] = minLevelCell + 1
-    #    ds['maxLevelCell'] = maxLevelCell + 1
-    #    ds['layerThickness'] = _compute_z_star_layer_thickness(
-    #        ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
-    #        ds.maxLevelCell)
-    
 
 def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
                                     minLevelCell, maxLevelCell):
@@ -248,8 +265,8 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
 
     refThickness = xarray.concat(refThickness, dim='nVertLevels')
     H_new = refThickness.sum(dim='nVertLevels')
-    H_old = restingThickness.sum(dim='nVertLevels')
     H_target = (ssh + bottomDepth)
+    #H_old = restingThickness.sum(dim='nVertLevels')
     layerStretch = H_target / H_new
 
     for zIndex in range(nVertLevels):
@@ -260,8 +277,4 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
         layerThickness.append(thickness)
     layerThickness = xarray.concat(layerThickness, dim='nVertLevels')
     layerThickness = layerThickness.transpose('nCells', 'nVertLevels')
-    H_New = layerThickness.sum(dim='nVertLevels')
-    if (any(abs(H_New - H_target) > 1e-5)):
-        print('total thickness does not match')
-        print(H_new[H_new != H_target],H_target[H_new != H_target])
     return layerThickness
