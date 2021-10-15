@@ -1,6 +1,7 @@
 from compass.testgroup import TestGroup
 from compass.ocean.tests.baroclinic_channel.decomp_test import DecompTest
 from compass.ocean.tests.baroclinic_channel.default import Default
+from compass.ocean.tests.baroclinic_channel.sediment_test import SedimentTest
 from compass.ocean.tests.baroclinic_channel.restart_test import RestartTest
 from compass.ocean.tests.baroclinic_channel.rpe_test import RpeTest
 from compass.ocean.tests.baroclinic_channel.threads_test import ThreadsTest
@@ -25,6 +26,8 @@ class BaroclinicChannel(TestGroup):
                 DecompTest(test_group=self, resolution=resolution))
             self.add_test_case(
                 Default(test_group=self, resolution=resolution))
+            self.add_test_case(
+                SedimentTest(test_group=self, resolution=resolution))
             self.add_test_case(
                 RestartTest(test_group=self, resolution=resolution))
             self.add_test_case(
