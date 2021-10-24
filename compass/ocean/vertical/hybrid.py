@@ -74,9 +74,6 @@ def init_hybrid_vertical_coord(config, ds):
     ds['bottomDepth'], ds['maxLevelCell'] = alter_bottom_depth(
         config, ds.bottomDepth, ds.refBottomDepth, ds.maxLevelCell)
 
-    #ds['ssh'], ds['minLevelCell'] = alter_ssh(
-    #    config, ds.ssh, ds.refBottomDepth, ds.minLevelCell)
-
     ds['restingThickness'] = compute_z_level_layer_thickness(
         ds.refTopDepth, ds.refBottomDepth, restingSSH, ds.bottomDepth,
         ds.minLevelCell, ds.maxLevelCell)
@@ -96,8 +93,6 @@ def init_hybrid_vertical_coord(config, ds):
     xCell = ds.xCell.values
     yCell = ds.yCell.values
 
-    minLevelCell = ds.minLevelCell
-    maxLevelCell = ds.maxLevelCell
     edgesOnCell = ds.edgesOnCell - 1
 
     cellsOnEdge = ds.cellsOnEdge - 1
@@ -116,93 +111,40 @@ def init_hybrid_vertical_coord(config, ds):
     if 'Time' in ssh.dims:
         ssh = ssh.isel(Time=0)
     ssh = ssh.values
-    bottomDepth = ds.bottomDepth.values
 
     minLevels = 3
     minLayerThickness = 25
-    nIters = 0
+    nIters = 5
     dzdx_thresh = 1e2/1e4 # 100m/10km
     #dzdx_thresh = 1e3/1e4 # no violations for ice-shelf-2d
 
-    for iIter in range(nVertLevels-minLevels):
-        cell_mask = numpy.logical_and(vert_index >= minLevelCell,
-                                      vert_index <= maxLevelCell)
+    dx = numpy.zeros(nEdges)
+    for edgeIndex in range(nEdges):
+        cell0Index = cellsOnEdge[edgeIndex,0].values
+        cell1Index = cellsOnEdge[edgeIndex,1].values
+        dx[edgeIndex] = numpy.sqrt(  numpy.square(xCell[cell0Index]
+                             - xCell[cell1Index])
+                + numpy.square(yCell[cell0Index]
+                             - yCell[cell1Index]))
+    dx[dx < 1e-3] = numpy.nan
 
-        layerThickness = ds.layerThickness.where(cell_mask, 0.).values
-        for cellIndex in range(nCells):
-            if any(layerThickness[cellIndex,minLevelCell[cellIndex].values:maxLevelCell[cellIndex].values]
-                   < minLayerThickness):
-                maxLevelCell[cellIndex] = max(minLevels, maxLevelCell[cellIndex] - 1)
-        ds['minLevelCell'] = minLevelCell
-        ds['maxLevelCell'] = maxLevelCell
-        ds['layerThickness'] = _compute_z_star_layer_thickness(
-            ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
-            ds.maxLevelCell)
-    
-    for iIter in range(nIters):
-        cell_mask = numpy.logical_and(vert_index >= minLevelCell,
-                                      vert_index <= maxLevelCell)
+    # Drop layers from bottom to maintain minimum layer thickness
+    ds['maxLevelCell'] = _adjust_maxLevelCell(
+        ds.layerThickness, ds.restingThickness, ds.ssh, ds.bottomDepth,
+        minLevels, minLayerThickness, ds.minLevelCell, ds.maxLevelCell)
+    ds['layerThickness'] = _compute_z_star_layer_thickness(
+        ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
+        ds.maxLevelCell)
 
-        layerThickness = ds.layerThickness.where(cell_mask, 0.).values
-         
-        # Update minLevelCell
-        # NOTE currently testing with sub-ice-shelf 2d case
-        #for edgeIndex,cell0Index in enumerate(cell0):
-        for edgeIndex in range(len(cell0)): # replace with nEdges
-            cell0Index = cell0[edgeIndex]
-            cell1Index = cell1[edgeIndex]
-            # if the edge is on the edge of the domain, don't evaluate
-            if min(minLevelCell[cell0Index].values,minLevelCell[cell0Index].values) == -1:
-                continue
-            # evaluate slope of the first continuous layer across edge
-            minLevelEdgeBot = max(minLevelCell[cell0Index].values,minLevelCell[cell1Index].values)
-            z0 = (  ssh[cell0Index]
-                  - sum(layerThickness[cell0Index,minLevelCell[cell0Index].values:minLevelEdgeBot])
-                  - 0.5*layerThickness[cell0Index,minLevelEdgeBot])
-            z1 = (  ssh[cell1Index]
-                  - sum(layerThickness[cell1Index,minLevelCell[cell1Index].values:minLevelEdgeBot])
-                  - 0.5*layerThickness[cell1Index,minLevelEdgeBot])
-            slope[edgeIndex] = (z0 - z1) / numpy.sqrt(  
-                               numpy.square(xCell[cell0Index]
-                                          - xCell[cell1Index])
-                             + numpy.square(yCell[cell0Index]
-                                         - yCell[cell1Index]))
-       for 
-            if (dz/dx > dzdx_thresh):
-               print('drop top layer at y = {}, mlc = {}, dz/dx = {}'.format(
-                   yCell[cell1Index], minLevelEdgeBot, dz/dx))
-               minLevelCell[cell1Index] = min(nVertLevels - minLevels,
-                                              minLevelCell[cell1Index] + 1)
-            elif (dz/dx < -1*dzdx_thresh):
-               print('drop top layer at y = {}, mlc = {}, dz/dx = {}'.format(
-                   yCell[cell0Index], minLevelEdgeBot, dz/dx))
-               minLevelCell[cell0Index] = min(nVertLevels - minLevels,
-                                              minLevelCell[cell0Index] + 1)
-
-        # Update maxLevelCell
-        # TODO needs to be tested with sloped bed
-        for edgeIndex in range(len(cell0)):
-            cell0Index = cell0[edgeIndex]
-            cell1Index = cell1[edgeIndex]
-            z0 = ( -1.0*bottomDepth[cell0Index]
-                  + 0.5*layerThickness[cell0Index,maxLevelCell[cell0Index]]) 
-            z1 = ( -1.0*bottomDepth[cell1Index]
-                  + 0.5*layerThickness[cell1Index,maxLevelCell[cell1Index]]) 
-            dz = z0 - z1
-            dx = numpy.sqrt(  numpy.square(xCell[cell0Index]
-                                         - xCell[cell1Index])
-                            + numpy.square(yCell[cell0Index]
-                                         - yCell[cell1Index]))
-            if (dz/dx > dzdx_thresh):
-               maxLevelCell[cell0Index] = max(minLevels, maxLevelCell[cell0Index] - 1)
-            elif (dz/dx < -1*dzdx_thresh):
-               maxLevelCell[cell1Index] = max(minLevels, maxLevelCell[cell1Index] - 1)
-
-        ds['layerThickness'] = _compute_z_star_layer_thickness(
-            ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
-            ds.maxLevelCell)
-
-    H_target = (ssh + bottomDepth)
+    # Drop layers from top to maintain slope limits
+    ds['minLevelCell'] = _adjust_minLevelCell(
+        ds.layerThickness, ds.restingThickness, ds.ssh, ds.bottomDepth,
+        minLevels, dzdx_thresh, dx, ds.minLevelCell, ds.maxLevelCell, cellsOnEdge)
+    ds['layerThickness'] = _compute_z_star_layer_thickness(
+        ds.restingThickness, ds.ssh, ds.bottomDepth, ds.minLevelCell,
+        ds.maxLevelCell)    
+                                
+    H_target = (ds.ssh.values + ds.bottomDepth.values)
     H = ds.layerThickness.sum(dim='nVertLevels')
     for iCell in range(nCells):
         if abs(H[iCell] - H_target[iCell]) > 1e-5:
@@ -266,7 +208,6 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
     refThickness = xarray.concat(refThickness, dim='nVertLevels')
     H_new = refThickness.sum(dim='nVertLevels')
     H_target = (ssh + bottomDepth)
-    #H_old = restingThickness.sum(dim='nVertLevels')
     layerStretch = H_target / H_new
 
     for zIndex in range(nVertLevels):
@@ -278,3 +219,113 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
     layerThickness = xarray.concat(layerThickness, dim='nVertLevels')
     layerThickness = layerThickness.transpose('nCells', 'nVertLevels')
     return layerThickness
+
+def _compute_layer_slope(layerThickness, ssh, bottomDepth, dx,
+                         minLevelCell, maxLevelCell, cellsOnEdge):
+    nEdges = len(cellsOnEdge)
+    slope_top = numpy.zeros((nEdges))
+    slope_bot = numpy.zeros((nEdges))
+    for edgeIndex in range(nEdges):
+        cell0Index = cellsOnEdge[edgeIndex,0].values
+        cell1Index = cellsOnEdge[edgeIndex,1].values
+        # if the edge is on the edge of the domain, don't evaluate
+        if min(minLevelCell[cell0Index].values,minLevelCell[cell0Index].values) == -1:
+            continue
+        if min(maxLevelCell[cell0Index].values,maxLevelCell[cell0Index].values) == -1:
+            continue
+        # evaluate slope of the first continuous layer across edge
+        minLevelEdgeBot = max(minLevelCell[cell0Index].values,minLevelCell[cell1Index].values)
+        z0 = (  ssh[cell0Index]
+              - sum(layerThickness[cell0Index,minLevelCell[cell0Index].values-1:minLevelEdgeBot-1])
+              - 0.5*layerThickness[cell0Index,minLevelEdgeBot-1])
+        z1 = (  ssh[cell1Index]
+              - sum(layerThickness[cell1Index,minLevelCell[cell1Index].values-1:minLevelEdgeBot-1])
+              - 0.5*layerThickness[cell1Index,minLevelEdgeBot-1])
+        slope_top[edgeIndex] = numpy.divide((z0 - z1),dx[edgeIndex])
+
+        maxLevelEdgeTop = min(minLevelCell[cell0Index].values,minLevelCell[cell1Index].values)
+        z0 = ( -bottomDepth[cell0Index]
+              + sum(layerThickness[cell0Index,maxLevelEdgeTop-1:maxLevelCell[cell0Index].values-1])
+              + 0.5*layerThickness[cell0Index,maxLevelEdgeTop-1])
+        z1 = ( -bottomDepth[cell1Index]
+              + sum(layerThickness[cell1Index,maxLevelEdgeTop-1:maxLevelCell[cell1Index].values-1])
+              + 0.5*layerThickness[cell1Index,maxLevelEdgeTop-1])
+        slope_bot[edgeIndex] = numpy.divide((z0 - z1),dx[edgeIndex])
+    return slope_top, slope_bot
+
+def _adjust_maxLevelCell(layerThickness, restingThickness, ssh, bottomDepth,
+                         minLevels, minLayerThickness, minLevelCell,
+                         maxLevelCell):
+    layerThickness_min = layerThickness.min(dim="nVertLevels").values
+    nCells = len(layerThickness_min)
+    nLevels = maxLevelCell.values - minLevelCell.values + 1
+    drop_mask = numpy.logical_and(layerThickness_min < minLayerThickness,
+                                  nLevels > minLevels)
+    while numpy.sum(drop_mask) > 0.:
+        print('drop layers from {}/{} cells for min thickness limit'.format(
+              numpy.sum(drop_mask),nCells))
+        maxLevelCell[drop_mask] = maxLevelCell[drop_mask] - 1
+        layerThickness = _compute_z_star_layer_thickness(
+            restingThickness, ssh, bottomDepth, minLevelCell,
+            maxLevelCell)
+        layerThickness_min = layerThickness.min(dim="nVertLevels").values
+        nLevels = maxLevelCell.values - minLevelCell.values + 1
+        drop_mask = numpy.logical_and(layerThickness_min < minLayerThickness,
+                                      nLevels > minLevels)
+    return maxLevelCell
+
+def _adjust_minLevelCell(layerThickness, restingThickness, ssh, bottomDepth,
+                         minLevels, dzdx_thresh, dx, minLevelCell,
+                         maxLevelCell, cellsOnEdge):
+    # Update slopes
+    nLevels = maxLevelCell.values - minLevelCell.values + 1
+    slope_top, slope_bot = _compute_layer_slope(layerThickness, ssh,
+        bottomDepth, dx, minLevelCell, maxLevelCell, cellsOnEdge)
+    # NOTE currently testing with sub-ice-shelf 2d case
+    #for edgeIndex,cell0Index in enumerate(cell0):
+    # TODO need to update slopes
+    slope_bool = (abs(slope_top) > dzdx_thresh)
+    while numpy.sum(slope_bool) > 0.:
+        print('top slope above thresh for {} edges'.format(numpy.sum(slope_bool)))
+        cell0 = cellsOnEdge[slope_bool,0].values
+        cell1 = cellsOnEdge[slope_bool,1].values
+        dzdx = slope_top[slope_bool]
+        for idx in range(len(cell0)):
+            cell0Index = cell0[idx]
+            cell1Index = cell1[idx]
+            minLevelEdgeBot = max(minLevelCell[cell0Index].values,
+                                  minLevelCell[cell1Index].values)
+            # Drop a layer from the top to decrease top slope
+            if (dzdx[idx] > dzdx_thresh):
+               if nLevels[cell1Index] <= minLevels:
+                   slope_bool[idx] = False
+               minLevelCell[cell1Index] = minLevelCell[cell1Index] + 1
+            elif (dzdx[idx] < -1*dzdx_thresh):
+               if nLevels[cell0Index] <= minLevels:
+                   slope_bool[idx] = False
+               minLevelCell[cell0Index] = minLevelCell[cell0Index] + 1
+        # Update slopes
+        layerThickness = _compute_z_star_layer_thickness(
+            restingThickness, ssh, bottomDepth, minLevelCell,
+            maxLevelCell)
+        slope_top, slope_bot = _compute_layer_slope(layerThickness, ssh,
+            bottomDepth, dx, minLevelCell, maxLevelCell, cellsOnEdge)
+        slope_bool = abs(slope_top) > dzdx_thresh
+        nLevels = maxLevelCell.values - minLevelCell.values + 1
+
+        # Update maxLevelCell
+        # TODO needs to be tested with sloped bed
+        # TODO need to update slopes
+        #slope_bool = abs(slope_bot) > dzdx_thresh
+        #print('bot slope above thresh for {} edges'.format(numpy.sum(slope_bool)))
+        #cell0 = cellsOnEdge[slope_bool,0].values
+        #cell1 = cellsOnEdge[slope_bool,1].values
+        #dzdx = slope_bot[slope_bool]
+        #for edgeIndex in range(len(cell0)):
+        #    cell0Index = cell0[edgeIndex]
+        #    cell1Index = cell1[edgeIndex]
+        #    if (dz/dx > dzdx_thresh):
+        #       maxLevelCell[cell0Index] = max(minLevels, maxLevelCell[cell0Index] - 1)
+        #    elif (dz/dx < -1*dzdx_thresh):
+        #       maxLevelCell[cell1Index] = max(minLevels, maxLevelCell[cell1Index] - 1)
+    return minLevelCell
