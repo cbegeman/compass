@@ -121,6 +121,9 @@ class OceanTest(TestCase):
         nx = round(800 / resolution)
         ny = round(100 / resolution)
         dc = 1e3 * resolution
+        # Width of the thin film region
+        nx_thin_film = 10
+
 
         if experiment in ['Ocean0', 'Ocean2', 'Ocean3']:
             # warm initial conditions
@@ -151,6 +154,7 @@ class OceanTest(TestCase):
         config.set('isomip_plus', 'nx', '{}'.format(nx))
         config.set('isomip_plus', 'ny', '{}'.format(ny))
         config.set('isomip_plus', 'dc', '{}'.format(dc))
+        config.set('isomip_plus', 'nx_thin_film', '{}'.format(nx_thin_film))
 
         approx_cells = 30e3 / resolution ** 2
         # round to the nearest 4 cores
