@@ -667,7 +667,7 @@ class MoviePlotter(object):
 
             for z_index in range(1, X.shape[0]):
                 plt.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k')
-            plt.plot(1e-3 * X[0, :], Z[0, :], 'g')
+            plt.plot(1e-3 * X[0, :], Z[0, :], 'b')
             plt.plot(1e-3 * X[0, :], self.zBotSection, 'g')
 
             ax.autoscale(tight=True)
