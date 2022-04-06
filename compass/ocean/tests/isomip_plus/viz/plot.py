@@ -789,15 +789,38 @@ class MoviePlotter(object):
         if os.path.exists(outFileName):
             return
 
+        nTime = self.Z.shape[0]
+
+        z_mask = numpy.ones(self.X.shape)
+        z_mask[0:-1, 0:-1] *= numpy.where(self.sectionMask, 1., numpy.nan)
+        #z_mask[1:, 0:-1] *= numpy.where(self.sectionMask, 1., numpy.nan)
+        #z_mask[0:-1, 1:] *= numpy.where(self.sectionMask, 1., numpy.nan)
+        #z_mask[1:, 1:] *= numpy.where(self.sectionMask, 1., numpy.nan)
+
+        tIndex=0
+        Z = numpy.array(self.Z[tIndex, :, :])
+        ylim = [numpy.amin(Z), 20]
+        Z *= z_mask
+        X = self.X
+
+
         plt.figure(figsize=figsize)
         ax = plt.subplot(111)
+        plt.fill_between(1e-3 * X[0, :],self.zBotSection,y2=0,facecolor='lightsteelblue')
+        plt.fill_between(1e-3 * X[0, :],self.zBotSection,y2=-750,facecolor='grey')
         plt.pcolormesh(1e-3*inX, inZ, field, vmin=vmin, vmax=vmax, cmap=cmap)
+        for z_index in range(1, X.shape[0]):
+            plt.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k')
+        #plt.plot(1e-3 * X[0, :], Z[0, :], 'b')
+        #plt.plot(1e-3 * X[0, :], self.zBotSection, 'g')
         plt.colorbar()
         ax.autoscale(tight=True)
         plt.ylim([numpy.amin(inZ), 20])
+        plt.xlim([400,800])
+        #plt.ylim([-700,-400])
         plt.title('{} {}'.format(title, self.date))
         plt.tight_layout(pad=0.5)
-        plt.savefig(outFileName)
+        plt.savefig(outFileName, dpi='figure')
         plt.close()
 
     def _compute_section_x_z(self):
