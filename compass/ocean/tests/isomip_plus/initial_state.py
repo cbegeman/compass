@@ -93,7 +93,7 @@ class InitialState(Step):
         """
         config = self.config
         logger = self.logger
-
+        thin_film_present = self.thin_film_present
         section = config['isomip_plus']
         nx = section.getint('nx')
         nx_thin_film = section.getint('nx_thin_film')
@@ -109,10 +109,10 @@ class InitialState(Step):
                                filterSigma=filter_sigma,
                                minIceThickness=min_ice_thickness,
                                scale=draft_scaling,
-                               thin_film_present=self.thin_film_present)
+                               thin_film_present=thin_film_present)
 
         # Add xOffset to reduce distance between x=0 and start of GL
-        if self.thin_film_present:
+        if thin_film_present:
             nxOffset = nx_thin_film
             # consider increasing nx
             dsMesh = make_planar_hex_mesh(nx=nx+nxOffset, ny=ny, dc=dc,
@@ -130,7 +130,7 @@ class InitialState(Step):
         min_ocean_fraction = config.getfloat('isomip_plus',
                                              'min_ocean_fraction')
 
-        if self.thin_film_present:
+        if thin_film_present:
             dsMask = define_thin_film_mask_step1(dsMesh, dsGeom)
         else:
             dsMask = interpolate_ocean_mask(dsMesh, dsGeom, min_ocean_fraction)
@@ -141,7 +141,7 @@ class InitialState(Step):
                          logger=logger)
         write_netcdf(dsMesh, 'culled_mesh.nc')
 
-        ds = interpolate_geom(dsMesh, dsGeom, min_ocean_fraction, self.thin_film_present)
+        ds = interpolate_geom(dsMesh, dsGeom, min_ocean_fraction, thin_film_present)
 
         for var in ['landIceFraction']:
             ds[var] = ds[var].expand_dims(dim='Time', axis=0)

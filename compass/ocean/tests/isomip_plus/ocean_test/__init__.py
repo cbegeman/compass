@@ -25,6 +25,9 @@ class OceanTest(TestCase):
 
     time_varying_forcing : bool
         Whether the run includes time-varying land-ice forcing
+
+    thin_film_prsent: bool
+        Whether a thin film is present under land ice
     """
 
     def __init__(self, test_group, resolution, experiment,
@@ -63,6 +66,7 @@ class OceanTest(TestCase):
         self.experiment = experiment
         self.vertical_coordinate = vertical_coordinate
         self.time_varying_forcing = time_varying_forcing
+        self.thin_film_present = thin_film_present
 
         if resolution == int(resolution):
             res_folder = f'{int(resolution)}km'
