@@ -168,12 +168,15 @@ class InitialState(Step):
 
         interfaces = generate_1d_grid(config)
 
+        # Modify ssh to maintain the minimum water-column thickness
+        vert_levels = config.getfloat('vertical_grid','vert_levels')
+        max_ssh = ds.bottomDepth - min_column_thickness
+        ds['ssh'] = -1*numpy.minimum(-ds.ssh, max_ssh)
         # Deepen the bottom depth to maintain the minimum water-column
         # thickness
-        vert_levels = config.getfloat('vertical_grid','vert_levels')
-        min_depth = numpy.maximum(-ds.ssh + min_column_thickness,
-                                  interfaces[numpy.minimum(int(vert_levels-1),min_levels+1)])
-        ds['bottomDepth'] = numpy.maximum(ds.bottomDepth, min_depth)
+        #min_depth = numpy.maximum(-ds.ssh + min_column_thickness,
+        #                          interfaces[numpy.minimum(int(vert_levels-1),min_levels+1)])
+        #ds['bottomDepth'] = numpy.maximum(ds.bottomDepth, min_depth)
 
         init_vertical_coord(config, ds)
 
