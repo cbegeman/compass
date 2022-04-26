@@ -159,10 +159,12 @@ def _adjust_min_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell)
     columnThickness = bottomDepth + ssh
 
     minLevelCell2 = maxLevelCell - numpy.floor(
-        columnThickness/minLayerThickness) + 1
+        columnThickness/minLayerThickness)
 
     print('Adjusted minLevelCell for n={} cells'.format(
         numpy.sum(minLevelCell.values!=minLevelCell2.values)))
+    print('Zeroed minLevelCell for n={} cells'.format(
+        numpy.sum(minLevelCell.values>maxLevelCell.values)))
 
     minLevelCell = numpy.maximum(minLevelCell,minLevelCell2)
 
@@ -202,24 +204,16 @@ def _adjust_max_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell)
 
     columnThickness = bottomDepth + ssh
     minLayerThickness  = max(minLayerThickness,1e-12)
-    maxLevelCell2 = minLevelCell + numpy.floor(
-        columnThickness/minLayerThickness) - 1
+    maxLevelCell2 = (minLevelCell +
+        numpy.floor(columnThickness/minLayerThickness))
 
     print('Adjusted maxLevelCell for n={} cells'.format(
         numpy.sum(maxLevelCell.values>maxLevelCell2.values)))
     print('Zeroed maxLevelCell for n={} cells'.format(
         numpy.sum(minLevelCell.values>maxLevelCell.values)))
-    for i,mlc in enumerate(maxLevelCell2.values):
-        if mlc<maxLevelCell[i]:
-            print(f'mean(layerThickness)={columnThickness[i]/minLayerThickness}')
-            print(f'mlc(old)={maxLevelCell[i].values}, mlc(new)={mlc}')
-            maxLevelCell[i] = numpy.minimum(maxLevelCell[i],maxLevelCell2[i])
-        if mlc<minLevelCell[i]:
-            print(f'water column collapsed')
-            maxLevelCell[i] = 0
 
-    #maxLevelCell = numpy.minimum(maxLevelCell,maxLevelCell2)
+    maxLevelCell = numpy.minimum(maxLevelCell,maxLevelCell2)
 
-    #maxLevelCell[minLevelCell>maxLevelCell] = 0
+    maxLevelCell[minLevelCell>maxLevelCell] = 0
 
     return maxLevelCell
