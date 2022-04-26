@@ -5,7 +5,8 @@ from mpas_tools.logging import check_call
 
 
 def run_model(step, update_pio=True, partition_graph=True,
-              graph_file='graph.info', namelist=None, streams=None):
+              graph_file='graph.info', namelist=None, streams=None,
+              environment_variables=None):
     """
     Run the model after determining the number of cores
 
@@ -45,6 +46,9 @@ def run_model(step, update_pio=True, partition_graph=True,
     if streams is None:
         streams = 'streams.{}'.format(mpas_core)
 
+    if environment_variables is None:
+        environment_variables = ''
+
     if update_pio:
         step.update_namelist_pio(namelist)
 
@@ -61,6 +65,7 @@ def run_model(step, update_pio=True, partition_graph=True,
     args = parallel_executable.split(' ')
     args.extend(['-n', '{}'.format(cores),
                  './{}'.format(model_basename),
+                 '-x', environment_variables,
                  '-n', namelist,
                  '-s', streams])
 

@@ -152,7 +152,8 @@ class ForwardStep(Step):
         """
         Run this step of the testcase
         """
-        run_model(self)
+        os.environ['SSDB'] = self.config.get('smartsim', 'SSDB')
+        run_model(self, environment_variables='SSDB')
         add_mesh_and_init_metadata(self.outputs, self.config,
                                    init_filename='init.nc')
 
