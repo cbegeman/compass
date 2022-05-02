@@ -202,9 +202,17 @@ def compute_z_level_resting_thickness(layerThickness, ssh, bottomDepth,
     """
 
     nVertLevels = layerThickness.sizes['nVertLevels']
+    totalThickness = []
     restingThickness = []
 
-    layerStretch = bottomDepth / (ssh + bottomDepth)
+    for zIndex in range(nVertLevels):
+        mask = numpy.logical_and(zIndex >= minLevelCell,
+                                 zIndex <= maxLevelCell)
+        thickness = layerThickness.isel(nVertLevels=zIndex)
+        thickness = thickness.where(mask, 0.)
+        totalThickness.append(thickness)
+    layerThicknessTotal = numpy.sum(totalThickness, axis=0)
+    layerStretch = layerThicknessTotal / (ssh + bottomDepth)
     for zIndex in range(nVertLevels):
         mask = numpy.logical_and(zIndex >= minLevelCell,
                                  zIndex <= maxLevelCell)
