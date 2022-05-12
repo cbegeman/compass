@@ -340,6 +340,42 @@ class MoviePlotter(object):
         if self.showProgress:
             bar.finish()
 
+    def plot_bottomDepth(self, vmin=0., vmax=740., initial_state=True):
+        """
+        Plot a series of image of the ssh
+
+        Parameters
+        ----------
+        vmin, vmax : float, optional
+            The minimum and maximum values for the colorbar
+        """
+
+        if initial_state:
+           da = self.ds.bottomDepth
+
+        self.plot_horiz_series(da, 'bottomDepth', prefix='bottomDepth',
+                               oceanDomain=False, units='m', vmin=vmin,
+                               vmax=vmax, cmap='cmo.curl', time_invariant=True)
+
+    def plot_ssh(self, vmin=-740., vmax=0., initial_state=True):
+        """
+        Plot a series of image of the ssh
+
+        Parameters
+        ----------
+        vmin, vmax : float, optional
+            The minimum and maximum values for the colorbar
+        """
+
+        if initial_state:
+           da = self.ds.ssh
+        else:
+           da = self.ds.timeMonthly_avg_ssh
+
+        self.plot_horiz_series(da, 'ssh', prefix='ssh',
+                               oceanDomain=False, units='m', vmin=vmin,
+                               vmax=vmax, cmap='cmo.curl')
+
     def plot_melt_rates(self, vmin=-100., vmax=100.):
         """
         Plot a series of image of the melt rate
@@ -470,7 +506,7 @@ class MoviePlotter(object):
                           units=None, vmin=None, vmax=None, cmap=None,
                           cmap_set_under=None, cmap_set_over=None,
                           cmap_scale='linear', time_indices=None,
-                          figsize=(9, 3)):
+                          figsize=(9, 3), time_invariant=False):
         """
         Plot a series of image of a given variable
 
@@ -522,7 +558,10 @@ class MoviePlotter(object):
             time_indices = range(nTime)
         for tIndex in time_indices:
             self.update_date(tIndex)
-            field = da.isel(Time=tIndex).values
+            if time_invariant:
+                field = da.values
+            else:
+                field = da.isel(Time=tIndex).values
             outFileName = '{}/{}/{}_{:04d}.png'.format(
                 self.outFolder, prefix, prefix, tIndex + 1)
             if units is None:
@@ -688,6 +727,12 @@ class MoviePlotter(object):
             ylim = [numpy.amin(Z), 20]
             Z *= z_mask
             X = self.X
+            zMid = self.ds.zMid.isel(
+                nCells=self.sectionCellIndices)
+            ssh = self.ds.ssh.isel(
+                nCells=self.sectionCellIndices)
+            zMid = zMid[tIndex, :, :]
+            ssh = ssh[tIndex, :]
             self.update_date(tIndex)
 
             outFileName = '{}/layers/layers_{:04d}.png'.format(self.outFolder,
@@ -706,7 +751,10 @@ class MoviePlotter(object):
 
             for z_index in range(1, X.shape[0]):
                 plt.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k')
-            plt.plot(1e-3 * X[0, :], Z[0, :], 'b')
+            for z_index in range(1, zMid.shape[1]):
+                plt.plot(1e-3 * X[z_index, 1:], zMid[:, z_index], 'b')
+            plt.plot(1e-3 * X[0, 1:], ssh, 'r')
+            plt.plot(1e-3 * X[0, :], Z[0, :], 'g')
             plt.plot(1e-3 * X[0, :], self.zBotSection, 'g')
 
             ax.autoscale(tight=True)

@@ -156,7 +156,8 @@ class InitialState(Step):
 
         max_bottom_depth = -config.getfloat('vertical_grid', 'bottom_depth')
         frac = (0. - ds.zMid) / (0. - max_bottom_depth)
-
+        ds['frac'] = frac
+        
         # compute T, S
         init_top_temp = section.getfloat('init_top_temp')
         init_bot_temp = section.getfloat('init_bot_temp')
@@ -284,6 +285,12 @@ class InitialState(Step):
                                   cmap='cmo.balance',
                                   cmap_set_under='k', cmap_set_over='r')
         plotter.plot_layer_interfaces()
+        plotter.plot_ssh()
+        plotter.plot_bottomDepth()
+
+        plotter.plot_3d_field_top_bot_section(
+            ds.restingThickness, nameInTitle='restingThickness', prefix='h', units='m',
+            vmin=0., vmax=50., cmap='cmo.deep_r')
 
         plotter.plot_3d_field_top_bot_section(
             ds.layerThickness, nameInTitle='layerThickness',
@@ -294,6 +301,10 @@ class InitialState(Step):
         plotter.plot_3d_field_top_bot_section(
             ds.zMid, nameInTitle='zMid', prefix='zmid', units='m',
             vmin=-720., vmax=0., cmap='cmo.deep_r')
+
+        plotter.plot_3d_field_top_bot_section(
+            ds.frac, nameInTitle='frac', prefix='frac', units='',
+            vmin=0., vmax=1., cmap='cmo.deep_r')
 
         plotter.plot_3d_field_top_bot_section(
             ds.temperature, nameInTitle='temperature', prefix='temp',
