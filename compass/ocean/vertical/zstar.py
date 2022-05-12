@@ -114,8 +114,16 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
 
     nVertLevels = restingThickness.sizes['nVertLevels']
     layerThickness = []
+    totalThickness = []
+    for zIndex in range(nVertLevels):
+        mask = numpy.logical_and(zIndex >= minLevelCell,
+                                 zIndex <= maxLevelCell)
+        thickness = restingThickness.isel(nVertLevels=zIndex)
+        thickness = thickness.where(mask, 0.)
+        totalThickness.append(thickness)
+    restingThicknessTotal = numpy.sum(totalThickness, axis=0)
 
-    layerStretch = (ssh + bottomDepth) / bottomDepth
+    layerStretch = (ssh + bottomDepth) / restingThicknessTotal
     for zIndex in range(nVertLevels):
         mask = numpy.logical_and(zIndex >= minLevelCell,
                                  zIndex <= maxLevelCell)
