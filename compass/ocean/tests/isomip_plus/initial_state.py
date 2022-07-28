@@ -94,6 +94,9 @@ class InitialState(Step):
         config = self.config
         logger = self.logger
         thin_film_present = self.thin_film_present
+        if self.vertical_coordinate == 'single_layer':
+            config.set('vertical_grid', 'vert_levels', '1', comment='Number of vertical levels')
+            config.set('vertical_grid', 'coord_type', 'z-level')
         section = config['isomip_plus']
         nx = section.getint('nx')
         nx_thin_film = section.getint('nx_thin_film')
