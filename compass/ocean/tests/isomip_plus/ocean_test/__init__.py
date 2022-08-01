@@ -83,7 +83,9 @@ class OceanTest(TestCase):
                          time_varying_forcing=time_varying_forcing,
                          thin_film_present=thin_film_present))
         self.add_step(
-            SshAdjustment(test_case=self, resolution=resolution))
+            SshAdjustment(test_case=self, resolution=resolution,
+                          vertical_coordinate=vertical_coordinate,
+                          thin_film_present=thin_film_present))
         self.add_step(
             Forward(test_case=self, name='performance', resolution=resolution,
                     experiment=experiment,
