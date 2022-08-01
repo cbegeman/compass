@@ -199,8 +199,12 @@ class InitialState(Step):
         init_bot_temp = section.getfloat('init_bot_temp')
         init_top_sal = section.getfloat('init_top_sal')
         init_bot_sal = section.getfloat('init_bot_sal')
-        ds['temperature'] = (1.0 - frac) * init_top_temp + frac * init_bot_temp
-        ds['salinity'] = (1.0 - frac) * init_top_sal + frac * init_bot_sal
+        if self.vertical_coordinate=='single_layer':
+            ds['temperature'] = init_bot_temp*xarray.ones_like(frac)
+            ds['salinity'] = init_bot_sal*xarray.ones_like(frac)
+        else:
+            ds['temperature'] = (1.0 - frac) * init_top_temp + frac * init_bot_temp
+            ds['salinity'] = (1.0 - frac) * init_top_sal + frac * init_bot_sal
 
         # compute coriolis
         coriolis_parameter = section.getfloat('coriolis_parameter')
@@ -248,12 +252,12 @@ class InitialState(Step):
                                   True, vmin=0, vmax=700)
         plotter.plot_horiz_series(ds.totalColThickness,
                                   'totalColThickness', 'totalColThickness',
-                                  True, vmin=0, vmax=700)
+                                  True, vmin=3.1e-3, vmax=700, cmap_set_under='r')
         plotter.plot_layer_interfaces()
 
         plotter.plot_3d_field_top_bot_section(
             ds.layerThickness, nameInTitle='layerThickness', prefix='h', units='m',
-            vmin=0., vmax=50., cmap='cmo.deep_r')
+            vmin=1.1e-3, vmax=50, cmap='cmo.deep_r', cmap_set_under='r')
 
         plotter.plot_3d_field_top_bot_section(
             ds.zMid, nameInTitle='zMid', prefix='zmid', units='m',
@@ -310,7 +314,17 @@ class InitialState(Step):
         dsForcing['seaIceHeatFlux'] = \
             mask*evap_rate*restore_top_temp/hflux_factor
 
+        if self.vertical_coordinate=='single_layer':
+            xMax = numpy.max(ds.xCell.values)
+            dsForcing['tidalInputMask'] = xarray.where(
+                ds.xCell > (xMax - 0.6*self.resolution*1e3), 1.0, 0.0)
+        else:
+            dsForcing['tidalInputMask'] = xarray.zeros_like(frac)
+
         write_netcdf(dsForcing, 'init_mode_forcing_data.nc')
+        dsForcing['tidalInputMask'] = dsForcing['tidalInputMask'].expand_dims(dim='Time', axis=0)
+        plotter.plot_horiz_series(dsForcing.tidalInputMask, 'tidalInputMask',
+                                  'tidalInputMask', True, vmin=0, vmax=1)
 
     def _write_time_varying_forcing(self, ds_init):
         """
