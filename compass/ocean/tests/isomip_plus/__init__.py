@@ -16,7 +16,7 @@ class IsomipPlus(TestGroup):
 
         for resolution in [2., 5.]:
             for experiment in ['Ocean0', 'Ocean1', 'Ocean2']:
-                for vertical_coordinate in ['z-star']:
+                for vertical_coordinate in ['z-star', 'single_layer']:
                     self.add_test_case(
                         OceanTest(test_group=self, resolution=resolution,
                                   experiment=experiment,
