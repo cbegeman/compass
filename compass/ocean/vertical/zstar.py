@@ -67,8 +67,10 @@ def init_z_star_vertical_coord(config, ds):
         compute_min_max_level_cell(ds.refTopDepth, ds.refBottomDepth,
                                    restingSSH, ds.bottomDepth)
 
-    ds['maxLevelCell'] = _adjust_max_level_cell(config, ds.ssh, ds.bottomDepth,
-        ds.minLevelCell, ds.maxLevelCell)
+    if config.has_option('vertical_grid','min_layer_thickness'):
+        minLayerThickness = config.getfloat('vertical_grid','min_layer_thickness')
+        ds['maxLevelCell'] = _adjust_max_level_cell(ds.ssh, ds.bottomDepth,
+            ds.minLevelCell, ds.maxLevelCell, minLayerThickness)
 
     ds['bottomDepth'], ds['maxLevelCell'] = alter_bottom_depth(
         config, ds.bottomDepth, ds.refBottomDepth, ds.maxLevelCell)
@@ -126,7 +128,8 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
     columnThickness = numpy.sum(layerThickness.values,axis=1)
     return layerThickness
 
-def _adjust_min_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell):
+def _adjust_min_level_cell(ssh, bottomDepth, minLevelCell, maxLevelCell,
+                           minLayerThickness):
     """
     Compute z-star layer thickness by stretching restingThickness based on ssh
     and bottomDepth
@@ -152,10 +155,6 @@ def _adjust_min_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell)
         The zero-based index of the top valid level
     """
     # TODO consider adding cellMask to output
-    minLayerThickness = config.getfloat('vertical_grid','min_layer_thickness')
-    if minLayerThickness <= 0:
-        return minLevelCell
-
     columnThickness = bottomDepth + ssh
 
     minLevelCell2 = maxLevelCell - numpy.floor(
@@ -172,7 +171,8 @@ def _adjust_min_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell)
 
     return minLevelCell
 
-def _adjust_max_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell):
+def _adjust_max_level_cell(ssh, bottomDepth, minLevelCell, maxLevelCell,
+                           minLayerThickness):
     """
     Compute z-star layer thickness by stretching restingThickness based on ssh
     and bottomDepth
@@ -192,16 +192,14 @@ def _adjust_max_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell)
     maxLevelCell : xarray.DataArray
         The zero-based index of the bottom valid level
 
+    minLayerThickness: xarray.DataArray
+        The minimum layer thickness
+
     Returns
     -------
     minLevelCell : xarray.DataArray
         The zero-based index of the top valid level
     """
-    # TODO consider adding cellMask to output
-    minLayerThickness = config.getfloat('vertical_grid','min_layer_thickness')
-    if minLayerThickness <= 0:
-        return maxLevelCell
-
     columnThickness = bottomDepth + ssh
     minLayerThickness  = max(minLayerThickness,1e-12)
     maxLevelCell2 = (minLevelCell +
