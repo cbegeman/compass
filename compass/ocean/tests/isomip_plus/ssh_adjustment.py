@@ -47,10 +47,10 @@ class SshAdjustment(Step):
                                'namelist.forward_and_ssh_adjust')
         if vertical_coordinate=='single_layer':
             self.add_namelist_file('compass.ocean.tests.isomip_plus',
-                                   'namelist.single_layer.forward')
+                                   'namelist.single_layer.forward_and_ssh_adjust')
         if thin_film_present:
             self.add_namelist_file('compass.ocean.tests.isomip_plus',
-                                   'namelist.thin_film.forward')
+                                   'namelist.thin_film.forward_and_ssh_adjust')
 
         # we don't want the global stats AM for this run
         options = get_time_steps(resolution)
