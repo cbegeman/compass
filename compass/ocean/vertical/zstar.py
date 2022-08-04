@@ -68,9 +68,8 @@ def init_z_star_vertical_coord(config, ds):
                                    restingSSH, ds.bottomDepth)
 
     if config.has_option('vertical_grid','min_layer_thickness'):
-        minLayerThickness = config.getfloat('vertical_grid','min_layer_thickness')
-        ds['maxLevelCell'] = _adjust_max_level_cell(ds.ssh, ds.bottomDepth,
-            ds.minLevelCell, ds.maxLevelCell, minLayerThickness)
+        ds['maxLevelCell'] = _adjust_max_level_cell(config, ds.ssh, ds.bottomDepth,
+            ds.minLevelCell, ds.maxLevelCell)
 
     ds['bottomDepth'], ds['maxLevelCell'] = alter_bottom_depth(
         config, ds.bottomDepth, ds.refBottomDepth, ds.maxLevelCell)
@@ -128,8 +127,7 @@ def _compute_z_star_layer_thickness(restingThickness, ssh, bottomDepth,
     columnThickness = numpy.sum(layerThickness.values,axis=1)
     return layerThickness
 
-def _adjust_min_level_cell(ssh, bottomDepth, minLevelCell, maxLevelCell,
-                           minLayerThickness):
+def _adjust_min_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell):
     """
     Compute z-star layer thickness by stretching restingThickness based on ssh
     and bottomDepth
@@ -171,8 +169,7 @@ def _adjust_min_level_cell(ssh, bottomDepth, minLevelCell, maxLevelCell,
 
     return minLevelCell
 
-def _adjust_max_level_cell(ssh, bottomDepth, minLevelCell, maxLevelCell,
-                           minLayerThickness):
+def _adjust_max_level_cell(config, ssh, bottomDepth, minLevelCell, maxLevelCell):
     """
     Compute z-star layer thickness by stretching restingThickness based on ssh
     and bottomDepth
@@ -200,18 +197,25 @@ def _adjust_max_level_cell(ssh, bottomDepth, minLevelCell, maxLevelCell,
     minLevelCell : xarray.DataArray
         The zero-based index of the top valid level
     """
+    minLayerThickness = config.getfloat('vertical_grid','min_layer_thickness')
     columnThickness = bottomDepth + ssh
-    minLayerThickness  = max(minLayerThickness,1e-12)
-    maxLevelCell2 = (minLevelCell +
-        numpy.floor(columnThickness/minLayerThickness))
-
+    minLayerThickness  = max(minLayerThickness, 1e-12)
+    numLevels = numpy.floor(columnThickness.values/minLayerThickness)
+    if config.has_option('isomip_plus','minimum_levels'):
+        minLevels = config.getfloat('isomip_plus','minimum_levels')
+        print(f'Minimum levels is {minLevels}')
+        numLevels = numpy.maximum(minLevels, numLevels)
+        maxLevelCell = numpy.maximum(maxLevelCell, minLevelCell + minLevels - 1)
+    maxLevelCell2 = minLevelCell + numLevels - 1
+        
     print('Adjusted maxLevelCell for n={} cells'.format(
         numpy.sum(maxLevelCell.values>maxLevelCell2.values)))
     print('Zeroed maxLevelCell for n={} cells'.format(
         numpy.sum(minLevelCell.values>maxLevelCell.values)))
 
-    maxLevelCell = numpy.minimum(maxLevelCell,maxLevelCell2)
+    maxLevelCell = numpy.minimum(maxLevelCell, maxLevelCell2)
 
     maxLevelCell[minLevelCell>maxLevelCell] = 0
-
+    print(f'MaxLevelCell: min, 10th%, 50th%, 90th%, max')
+    print(f'{numpy.min(maxLevelCell.values)},{numpy.percentile(maxLevelCell.values,[10,50,90])},{numpy.max(maxLevelCell.values)}')
     return maxLevelCell
