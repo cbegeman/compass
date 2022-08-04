@@ -166,20 +166,24 @@ class InitialState(Step):
 
         section = config['isomip_plus']
 
+        min_layer_thickness = config.getfloat('vertical_grid','min_layer_thickness')
         min_column_thickness = section.getfloat('min_column_thickness')
-        min_levels = section.getint('minimum_levels')
+        min_levels = section.getfloat('minimum_levels')
+        #vert_levels = config.getfloat('vertical_grid','vert_levels')
 
-        interfaces = generate_1d_grid(config)
+        ## Modify ssh to maintain the minimum water-column thickness
+        #max_ssh = ds.bottomDepth - min_column_thickness
+        #ds['ssh'] = -1*numpy.minimum(-ds.ssh, max_ssh)
 
-        # Modify ssh to maintain the minimum water-column thickness
-        vert_levels = config.getfloat('vertical_grid','vert_levels')
-        max_ssh = ds.bottomDepth - min_column_thickness
-        ds['ssh'] = -1*numpy.minimum(-ds.ssh, max_ssh)
         # Deepen the bottom depth to maintain the minimum water-column
         # thickness
-        #min_depth = numpy.maximum(-ds.ssh + min_column_thickness,
-        #                          interfaces[numpy.minimum(int(vert_levels-1),min_levels+1)])
-        #ds['bottomDepth'] = numpy.maximum(ds.bottomDepth, min_depth)
+        print(f'min_levels*min_layer_thickness={min_levels*min_layer_thickness}')
+        min_depth = -ds.ssh + max(min_column_thickness, min_levels*min_layer_thickness)
+
+        print(f'Adjusted bottomDepth for {numpy.sum(ds.bottomDepth.values<min_depth.values)} cells')
+        ds['bottomDepth'] = numpy.maximum(ds.bottomDepth, min_depth)
+
+        interfaces = generate_1d_grid(config)
 
         init_vertical_coord(config, ds)
 
@@ -188,6 +192,7 @@ class InitialState(Step):
         print(f'max(maxLevelCell) = {numpy.max(maxLevelCell.values)}')
         print(f'min(ssh) = {numpy.min(ssh.values)}')
         print(f'max(ssh) = {numpy.max(ssh.values)}')
+
         ds['modifyLandIcePressureMask'] = \
             (ds['landIceFraction'] > 0.01).astype(int)
 
