@@ -674,6 +674,17 @@ class MoviePlotter(object):
 
             ax.autoscale(tight=True)
             plt.ylim(ylim)
+            axins = ax.inset_axes([0.01, 0.6, 0.3, 0.39])
+            for z_index in range(1, X.shape[0]):
+                axins.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k')
+            axins.plot(1e-3 * X[0, :], Z[0, :], 'b')
+            axins.plot(1e-3 * X[0, :], self.zBotSection, 'g')
+            x1, x2, y1, y2 = 450, 475, -675, -550
+            axins.set_xlim(x1, x2)
+            axins.set_ylim(y1, y2)
+            axins.set_xticklabels([])
+            axins.set_yticklabels([])
+            ax.indicate_inset_zoom(axins, edgecolor="black")
             plt.title('{} {}'.format('layer interfaces', self.date))
             plt.tight_layout(pad=0.5)
             plt.savefig(outFileName)
