@@ -63,12 +63,24 @@ def init_z_star_vertical_coord(config, ds):
     ds['vertCoordMovementWeights'] = xarray.ones_like(ds.refBottomDepth)
 
     restingSSH = xarray.zeros_like(ds.bottomDepth)
+    print('refBottomDepth=')
+    print(ds.refBottomDepth.values)
     ds['minLevelCell'], ds['maxLevelCell'], ds['cellMask'] = \
         compute_min_max_level_cell(ds.refTopDepth, ds.refBottomDepth,
                                    restingSSH, ds.bottomDepth)
 
+    print(f'compute min(maxLevelCell) = {numpy.min(ds.maxLevelCell.values)}')
+    print(f'compute max(maxLevelCell) = {numpy.max(ds.maxLevelCell.values)}')
     ds['bottomDepth'], ds['maxLevelCell'] = alter_bottom_depth(
         config, ds.bottomDepth, ds.refBottomDepth, ds.maxLevelCell)
+    print(f'alter min(maxLevelCell) = {numpy.min(ds.maxLevelCell.values)}')
+    print(f'alter max(maxLevelCell) = {numpy.max(ds.maxLevelCell.values)}')
+    if config.has_option('vertical_grid', 'minimum_levels'):
+        minimum_levels = config.getfloat('vertical_grid', 'minimum_levels')
+        ds['maxLevelCell'] = numpy.maximum(ds.maxLevelCell,
+                                           ds.minLevelCell + minimum_levels - 1)
+    print(f'levels min(maxLevelCell) = {numpy.min(ds.maxLevelCell.values)}')
+    print(f'levels max(maxLevelCell) = {numpy.max(ds.maxLevelCell.values)}')
 
     ds['restingThickness'] = compute_z_level_layer_thickness(
         ds.refTopDepth, ds.refBottomDepth, restingSSH, ds.bottomDepth,

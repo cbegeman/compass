@@ -168,7 +168,7 @@ class InitialState(Step):
 
         min_layer_thickness = config.getfloat('vertical_grid','min_layer_thickness')
         min_column_thickness = section.getfloat('min_column_thickness')
-        min_levels = section.getfloat('minimum_levels')
+        min_levels = config.getfloat('vertical_grid','minimum_levels')
         #vert_levels = config.getfloat('vertical_grid','vert_levels')
 
         ## Modify ssh to maintain the minimum water-column thickness
@@ -189,7 +189,8 @@ class InitialState(Step):
 
         maxLevelCell = ds['maxLevelCell']
         ssh = ds['ssh']
-        print(f'max(maxLevelCell) = {numpy.max(maxLevelCell.values)}')
+        print(f'init min(maxLevelCell) = {numpy.min(maxLevelCell.values)}')
+        print(f'init max(maxLevelCell) = {numpy.max(maxLevelCell.values)}')
         print(f'min(ssh) = {numpy.min(ssh.values)}')
         print(f'max(ssh) = {numpy.max(ssh.values)}')
 
