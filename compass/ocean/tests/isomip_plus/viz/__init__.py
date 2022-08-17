@@ -1,5 +1,6 @@
 import xarray
 import os
+import numpy
 
 from mpas_tools.io import write_netcdf
 
@@ -62,6 +63,8 @@ class Viz(Step):
         expt = self.experiment
 
         dsMesh = xarray.open_dataset('{}/init.nc'.format(sim_dir))
+        dsOut = xarray.open_dataset('{}/output.nc'.format(sim_dir))
+        dsForcing = xarray.open_dataset('{}/forcing_data_init.nc'.format(sim_dir))
 
         ds = xarray.open_mfdataset(
             '{}/timeSeriesStatsMonthly*.nc'.format(sim_dir),
@@ -74,12 +77,12 @@ class Viz(Step):
         tsPlotter = TimeSeriesPlotter(inFolder=sim_dir,
                                       outFolder='{}/plots'.format(out_dir),
                                       expt=expt)
-        tsPlotter.plot_melt_time_series()
+        #tsPlotter.plot_melt_time_series()
         tsPlotter = TimeSeriesPlotter(
             inFolder=sim_dir,
             outFolder='{}/timeSeriesBelow300m'.format(out_dir),
             expt=expt)
-        tsPlotter.plot_melt_time_series(sshMax=-300.)
+        #tsPlotter.plot_melt_time_series(sshMax=-300.)
 
         mPlotter = MoviePlotter(inFolder=sim_dir,
                                 streamfunctionFolder=streamfunction_dir,
@@ -97,8 +100,8 @@ class Viz(Step):
         if plot_haney:
             mPlotter.plot_haney_number(haneyFolder=out_dir)
 
-        mPlotter.plot_melt_rates()
-        mPlotter.plot_ice_shelf_boundary_variables()
+        #mPlotter.plot_melt_rates()
+        #mPlotter.plot_ice_shelf_boundary_variables()
         mPlotter.plot_temperature()
         mPlotter.plot_salinity()
         mPlotter.plot_potential_density()
@@ -106,6 +109,15 @@ class Viz(Step):
         mPlotter.images_to_movies(outFolder='{}/movies'.format(out_dir),
                                   framesPerSecond=frames_per_second,
                                   extension=movie_format)
+
+        plotter = MoviePlotter(inFolder=sim_dir,
+                                streamfunctionFolder=streamfunction_dir,
+                                outFolder='{}/plots'.format(out_dir),
+                                expt=expt, sectionY=section_y,
+                                dsMesh=dsMesh, ds=dsOut,
+                                showProgress=show_progress)
+        delssh = dsOut.ssh-dsOut.ssh[0,:]
+        plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True, cmap='cmo.curl', vmin=-10, vmax=10)
 
 
 def file_complete(ds, fileName):
