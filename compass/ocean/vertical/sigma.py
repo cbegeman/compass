@@ -3,7 +3,7 @@ import xarray
 from compass.ocean.vertical.grid_1d import add_1d_grid
 
 
-def init_sigma_vertical_coord(config, ds):
+def init_sigma_vertical_coord(config, ds, max_level=None):
     """
     Create a sigma (terrain-following) vertical coordinate based on the config
     options in the `vertical_grid`` section and the ``bottomDepth`` and
@@ -62,16 +62,20 @@ def init_sigma_vertical_coord(config, ds):
     ds['cellMask'] = cell_mask.transpose('nCells', 'nVertLevels')
 
     ds['minLevelCell'] = xarray.zeros_like(ds.bottomDepth, dtype=int)
-    ds['maxLevelCell'] = (ds.sizes['nVertLevels']-1 *
+    if max_level is None:
+        ds['maxLevelCell'] = (max_level-1 *
+                          xarray.ones_like(ds.bottomDepth, dtype=int))
+    else:
+        ds['maxLevelCell'] = (ds.sizes['nVertLevels']-1 *
                           xarray.ones_like(ds.bottomDepth, dtype=int))
 
     resting_ssh = xarray.zeros_like(ds.bottomDepth)
 
     ds['restingThickness'] = compute_sigma_layer_thickness(
-        ds.refInterfaces, resting_ssh, ds.bottomDepth)
+        ds.refInterfaces, resting_ssh, ds.bottomDepth, max_level=max_level)
 
     ds['layerThickness'] = compute_sigma_layer_thickness(
-        ds.refInterfaces, ds.ssh, ds.bottomDepth)
+        ds.refInterfaces, ds.ssh, ds.bottomDepth, max_level=max_level)
 
 
 def compute_sigma_layer_thickness(ref_interfaces, ssh, bottom_depth,

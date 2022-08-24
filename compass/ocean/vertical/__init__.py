@@ -75,6 +75,62 @@ def init_vertical_coord(config, ds):
         init_z_star_vertical_coord(config, ds)
     elif coord_type == 'sigma':
         init_sigma_vertical_coord(config, ds)
+    elif coord_type == 'hybrid':
+        ds1 = ds
+        coord_type_1 = config.get('vertical_grid', 'hybrid_coord_type_1')
+        if coord_type_1 == 'z-level':
+            init_z_level_vertical_coord(config, ds1)
+        elif coord_type_1 == 'z-star':
+            init_z_star_vertical_coord(config, ds1)
+        elif coord_type_1 == 'sigma':
+            init_sigma_vertical_coord(config, ds1, max_level=3)
+        elif coord_type_1 == 'haney-number':
+            raise ValueError('Haney Number coordinate not yet supported.')
+        else:
+            raise ValueError('Unknown coordinate type {}'.format(coord_type))
+        ds2 = ds
+        coord_type_2 = config.get('vertical_grid', 'hybrid_coord_type_2')
+        if coord_type_2 == 'z-level':
+            init_z_level_vertical_coord(config, ds2)
+        elif coord_type_2 == 'z-star':
+            init_z_star_vertical_coord(config, ds2)
+        elif coord_type_2 == 'sigma':
+            init_sigma_vertical_coord(config, ds2, max_level=3)
+        elif coord_type_2 == 'haney-number':
+            raise ValueError('Haney Number coordinate not yet supported.')
+        else:
+            raise ValueError('Unknown coordinate type {}'.format(coord_type))
+        #TODO compute for ds1 and ds2 separately
+        ds = ds2
+        col_thick_thresh = config.getfloat('vertical_grid', 'hybrid_column_thickness_thresh')
+        col_thick = ds.ssh + ds.bottomDepth
+        # recompute the cell mask since min/max indices may have changed
+        ds['cellMask'] = _compute_cell_mask(ds.minLevelCell, ds.maxLevelCell,
+                                            ds.sizes['nVertLevels'])
+
+        # Apply coord_type_1 below threshold
+        ds['layerThickness'] = ds1.layerThickness.where(col_thick < col_thick_thresh)
+        ds['restingThickness'] = ds1.restingThickness.where(col_thick < col_thick_thresh)
+
+        # mask layerThickness and restingThickness
+        ds['layerThickness'] = ds.layerThickness.where(ds.cellMask)
+        ds['restingThickness'] = ds.restingThickness.where(ds.cellMask)
+
+        # add (back) Time dimension
+        ds['ssh'] = ds.ssh.expand_dims(dim='Time', axis=0)
+        ds['layerThickness'] = ds.layerThickness.expand_dims(dim='Time', axis=0)
+        ds['restingThickness'] = \
+            ds.restingThickness.expand_dims(dim='Time', axis=0)
+
+        ds['zMid'] = _compute_zmid_from_layer_thickness(
+            ds.layerThickness, ds.ssh, ds.cellMask)
+
+        # fortran 1-based indexing
+        ds['minLevelCell'] = ds.minLevelCell+1
+        ds['maxLevelCell'] = ds.maxLevelCell+1
+
+        return
+
     elif coord_type == 'haney-number':
         raise ValueError('Haney Number coordinate not yet supported.')
     else:

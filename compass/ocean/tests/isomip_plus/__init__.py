@@ -28,7 +28,7 @@ class IsomipPlus(TestGroup):
                                   experiment=experiment,
                                   vertical_coordinate=vertical_coordinate,
                                   time_varying_forcing=True))
-                for vertical_coordinate in ['z-star', 'single_layer']:
+                for vertical_coordinate in ['z-star', 'single_layer', 'sigma', 'hybrid']:
                     self.add_test_case(
                         OceanTest(test_group=self, resolution=resolution,
                                   experiment=experiment,
