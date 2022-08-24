@@ -263,7 +263,7 @@ class InitialState(Step):
 
         plotter.plot_3d_field_top_bot_section(
             ds.layerThickness, nameInTitle='layerThickness', prefix='h', units='m',
-            vmin=1.1e-3, vmax=50, cmap='cmo.deep_r', cmap_set_under='r')
+            vmin=1e-3+1e-10, vmax=50, cmap='cmo.deep_r', cmap_set_under='r')
 
         plotter.plot_3d_field_top_bot_section(
             ds.zMid, nameInTitle='zMid', prefix='zmid', units='m',
@@ -328,9 +328,10 @@ class InitialState(Step):
             dsForcing['tidalInputMask'] = xarray.zeros_like(frac)
 
         write_netcdf(dsForcing, 'init_mode_forcing_data.nc')
-        dsForcing['tidalInputMask'] = dsForcing['tidalInputMask'].expand_dims(dim='Time', axis=0)
-        plotter.plot_horiz_series(dsForcing.tidalInputMask, 'tidalInputMask',
-                                  'tidalInputMask', True, vmin=0, vmax=1)
+        if self.vertical_coordinate=='single_layer':
+            dsForcing['tidalInputMask'] = dsForcing['tidalInputMask'].expand_dims(dim='Time', axis=0)
+            plotter.plot_horiz_series(dsForcing.tidalInputMask, 'tidalInputMask',
+                                      'tidalInputMask', True, vmin=0, vmax=1)
 
     def _write_time_varying_forcing(self, ds_init):
         """
