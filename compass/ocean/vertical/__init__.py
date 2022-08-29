@@ -76,6 +76,7 @@ def init_vertical_coord(config, ds):
     elif coord_type == 'sigma':
         init_sigma_vertical_coord(config, ds)
     elif coord_type == 'hybrid':
+        print('start hybrid coord')
         ds1 = ds
         coord_type_1 = config.get('vertical_grid', 'hybrid_coord_type_1')
         if coord_type_1 == 'z-level':
@@ -83,7 +84,10 @@ def init_vertical_coord(config, ds):
         elif coord_type_1 == 'z-star':
             init_z_star_vertical_coord(config, ds1)
         elif coord_type_1 == 'sigma':
+            print('coord_1 is sigma')
             init_sigma_vertical_coord(config, ds1, max_level=3)
+            print(f'min(maxLevelCell)={numpy.min(ds1.maxLevelCell.values)}')
+            print(f'max(maxLevelCell)={numpy.max(ds1.maxLevelCell.values)}')
         elif coord_type_1 == 'haney-number':
             raise ValueError('Haney Number coordinate not yet supported.')
         else:
@@ -101,7 +105,8 @@ def init_vertical_coord(config, ds):
         else:
             raise ValueError('Unknown coordinate type {}'.format(coord_type))
         #TODO compute for ds1 and ds2 separately
-        ds = ds2
+        ds = ds1
+        #ds = ds2
         col_thick_thresh = config.getfloat('vertical_grid', 'hybrid_column_thickness_thresh')
         col_thick = ds.ssh + ds.bottomDepth
         # recompute the cell mask since min/max indices may have changed
@@ -109,8 +114,8 @@ def init_vertical_coord(config, ds):
                                             ds.sizes['nVertLevels'])
 
         # Apply coord_type_1 below threshold
-        ds['layerThickness'] = ds1.layerThickness.where(col_thick < col_thick_thresh)
-        ds['restingThickness'] = ds1.restingThickness.where(col_thick < col_thick_thresh)
+        #ds['layerThickness'] = ds1.layerThickness.where(col_thick < col_thick_thresh)
+        #ds['restingThickness'] = ds1.restingThickness.where(col_thick < col_thick_thresh)
 
         # mask layerThickness and restingThickness
         ds['layerThickness'] = ds.layerThickness.where(ds.cellMask)
