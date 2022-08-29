@@ -255,10 +255,10 @@ class InitialState(Step):
                                   True, vmin=-700, vmax=0)
         plotter.plot_horiz_series(ds.ssh + ds.bottomDepth,
                                   'H', 'H',
-                                  True, vmin=0, vmax=700)
+                                  True, vmin=1e-3+1e-10, vmax=700, cmap_set_under='r')
         plotter.plot_horiz_series(ds.totalColThickness,
                                   'totalColThickness', 'totalColThickness',
-                                  True, vmin=3.1e-3, vmax=700, cmap_set_under='r')
+                                  True, vmin=1e-3+1e-10, vmax=700, cmap_set_under='r')
         plotter.plot_layer_interfaces()
 
         plotter.plot_3d_field_top_bot_section(
