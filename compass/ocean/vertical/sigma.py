@@ -63,10 +63,10 @@ def init_sigma_vertical_coord(config, ds, max_level=None):
 
     ds['minLevelCell'] = xarray.zeros_like(ds.bottomDepth, dtype=int)
     if max_level is None:
-        ds['maxLevelCell'] = (max_level-1 *
+        ds['maxLevelCell'] = (ds.sizes['nVertLevels']-1 *
                           xarray.ones_like(ds.bottomDepth, dtype=int))
     else:
-        ds['maxLevelCell'] = (ds.sizes['nVertLevels']-1 *
+        ds['maxLevelCell'] = (max_level-1 *
                           xarray.ones_like(ds.bottomDepth, dtype=int))
 
     resting_ssh = xarray.zeros_like(ds.bottomDepth)
