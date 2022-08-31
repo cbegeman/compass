@@ -74,20 +74,31 @@ class Viz(Step):
                                 dsMesh=dsMesh, ds=dsOut,
                                 showProgress=show_progress)
 
+        #print(f'min(h) = {numpy.min(dsOut.layerThickness[-1,:].values)}')
 
         delssh = dsOut.ssh-dsOut.ssh[0,:]
-        plotter.plot_horiz_series(dsOut.ssh, 'ssh', 'ssh', True, cmap='cmo.curl')
-        plotter.plot_horiz_series(dsOut.velocityX[:,:,0], 'u', 'u', True,
-                                  cmap='cmo.balance')
-        plotter.plot_horiz_series(dsOut.velocityY[:,:,0], 'v', 'v', True,
-                                  cmap='cmo.balance')
+        delice = dsIce.landIcePressure-dsMesh.landIcePressure[0,:]
+        Hice = dsIce.landIceDraft+dsMesh.bottomDepth
+        #deldraft = dsIce.landIceDraft-dsOut.ssh[-1,:]
+
+        plotter.plot_horiz_series(dsOut.ssh, 'ssh', 'ssh', True,
+                                  cmap='cmo.thermal', vmin=-700, vmax=0)
+        plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True, cmap='cmo.curl', vmin=-1, vmax=1)
+
+        #plotter.plot_horiz_series(deldraft, 'deldraft', 'deldraft', True, cmap='cmo.curl',
+        #                          vmin=-20, vmax=20)
+        #plotter.plot_horiz_series(dsIce.landIceDraft, 'landIceDraft', 'landIceDraft', True,
+        #                          cmap='cmo.thermal', vmin=-700, vmax=0)
+        #plotter.plot_horiz_series(Hice, 'Hice', 'Hice', True)#,
+                                  #vmin=3e-3+1e-10, vmax=700, cmap_set_under='r')
+        #plotter.plot_horiz_series(dsIce.landIcePressure, 'landIcePressure', 'landIcePressure', 
+        #                          True, cmap='cmo.curl')
+        #plotter.plot_horiz_series(delice, 'delLandIcePressure', 'delLandIcePressure', 
+        #                          True, cmap='cmo.curl')
+        plotter.plot_horiz_series(dsOut.velocityX[:,:,0], 'u', 'u', True, cmap='cmo.balance')
+        plotter.plot_horiz_series(dsOut.velocityY[:,:,0], 'v', 'v', True, cmap='cmo.balance')
         plotter.plot_horiz_series(dsOut.ssh + dsMesh.bottomDepth, 'H', 'H', True,
-                                  vmin=3e-3+1e-10, vmax=10, cmap_set_under='r')
-        plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True,
-                                  cmap='cmo.curl', vmin=-1, vmax=1)
-        delice = dsOut.landIcePressure-dsOut.landIcePressure[0,:]
-        plotter.plot_horiz_series(delice, 'delLandIcePressure', 'delLandIcePressure', 
-                                  True, cmap='cmo.curl')
+                                  vmin=3e-3+3e-10, vmax=700, cmap_set_under='r', cmap_scale='log')
 
         ds = xarray.open_mfdataset(
             '{}/timeSeriesStatsMonthly*.nc'.format(sim_dir),
