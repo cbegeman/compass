@@ -64,7 +64,7 @@ class Viz(Step):
 
         dsMesh = xarray.open_dataset('{}/init.nc'.format(sim_dir))
         dsOut = xarray.open_dataset('{}/output.nc'.format(sim_dir))
-        dsIce = xarray.open_dataset('{}/land_ice_fluxes.nc'.format(sim_dir))
+        #dsIce = xarray.open_dataset('{}/land_ice_fluxes.nc'.format(sim_dir))
         dsForcing = xarray.open_dataset('{}/forcing_data_init.nc'.format(sim_dir))
 
         plotter = MoviePlotter(inFolder=sim_dir,
@@ -77,8 +77,8 @@ class Viz(Step):
         #print(f'min(h) = {numpy.min(dsOut.layerThickness[-1,:].values)}')
 
         delssh = dsOut.ssh-dsOut.ssh[0,:]
-        delice = dsIce.landIcePressure-dsMesh.landIcePressure[0,:]
-        Hice = dsIce.landIceDraft+dsMesh.bottomDepth
+        #delice = dsIce.landIcePressure-dsMesh.landIcePressure[0,:]
+        #Hice = dsIce.landIceDraft+dsMesh.bottomDepth
         #deldraft = dsIce.landIceDraft-dsOut.ssh[-1,:]
 
         plotter.plot_horiz_series(dsOut.ssh, 'ssh', 'ssh', True,
