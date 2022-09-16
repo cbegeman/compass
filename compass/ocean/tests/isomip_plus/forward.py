@@ -88,8 +88,9 @@ class Forward(Step):
         if vertical_coordinate == 'single_layer':
             self.add_namelist_file('compass.ocean.tests.isomip_plus',
                                    'namelist.single_layer.forward_and_ssh_adjust')
-            self.add_namelist_file('compass.ocean.tests.isomip_plus',
-                                   'namelist.single_layer.forward')
+            if not time_varying_forcing:
+                self.add_namelist_file('compass.ocean.tests.isomip_plus',
+                                       'namelist.single_layer.forward')
 
         if thin_film_present:
             self.add_namelist_file('compass.ocean.tests.isomip_plus',
