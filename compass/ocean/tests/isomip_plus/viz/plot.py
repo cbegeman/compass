@@ -767,8 +767,7 @@ class MoviePlotter(object):
         if cmap is not None:
             localPatches.set_cmap(cmap)
         if cmap_scale == 'log':
-            localPatches.set_norm(LogNorm(vmin=max(1e-3,vmin),
-                                          vmax=min(1e3,vmax),clip=False))
+            localPatches.set_norm(LogNorm(vmin=max(1e-3,vmin),vmax=vmax,clip=False))
         plt.figure(figsize=figsize)
         ax = plt.subplot(111)
         ax.add_collection(localPatches)
