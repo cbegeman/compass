@@ -98,7 +98,8 @@ class OceanTest(TestCase):
                     run_duration='0000-00-00_01:00:00',
                     vertical_coordinate=vertical_coordinate,
                     time_varying_forcing=time_varying_forcing,
-                    thin_film_present=thin_film_present))
+                    thin_film_present=thin_film_present),
+            run_by_default=False)
 
         self.add_step(
             Forward(test_case=self, name='simulation', resolution=resolution,
@@ -107,7 +108,7 @@ class OceanTest(TestCase):
                     vertical_coordinate=vertical_coordinate,
                     time_varying_forcing=time_varying_forcing,
                     thin_film_present=thin_film_present),
-            run_by_default=False)
+            run_by_default=True)
 
         self.add_step(
             Streamfunction(test_case=self, resolution=resolution,
@@ -116,7 +117,7 @@ class OceanTest(TestCase):
 
         self.add_step(
             Viz(test_case=self, resolution=resolution, experiment=experiment),
-            run_by_default=False)
+            run_by_default=True)
 
         if resolution in [2., 5.]:
             self.add_step(
@@ -142,12 +143,12 @@ class OceanTest(TestCase):
         # Width of the thin film region
         nx_thin_film = 10
 
-        if 'thin_film' in experiment:
+        if thin_film_present:
             config.set('isomip_plus', 'min_column_thickness', '1e-3')
 
-        if 'wetting' in experiment:
+        if time_varying_load == 'increasing':
             config.set('isomip_plus_forcing', 'scales', '1.0, 2.0, 2.0')
-        if 'drying' in experiment:
+        if time_varying_load == 'decreasing':
             config.set('isomip_plus_forcing', 'scales', '1.0, 0.8, 0.6')
 
         if experiment in ['Ocean0', 'Ocean2', 'Ocean3']:
