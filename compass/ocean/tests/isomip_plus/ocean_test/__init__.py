@@ -32,7 +32,7 @@ class OceanTest(TestCase):
 
     def __init__(self, test_group, resolution, experiment,
                  vertical_coordinate, time_varying_forcing=False,
-                 thin_film_present=False):
+                 time_varying_load='', thin_film_present=False):
         """
         Create the test case
 
@@ -58,7 +58,12 @@ class OceanTest(TestCase):
         """
         name = experiment
         if time_varying_forcing:
-            name = f'time_varying_{name}'
+            if time_varying_load == 'increasing':
+                name = f'drying_{name}'
+            elif time_varying_load == 'decreasing':
+                name = f'wetting_{name}'
+            else:
+                name = f'time_varying_{name}'
         if thin_film_present:
             name = f'thin_film_{name}'
 
@@ -66,6 +71,7 @@ class OceanTest(TestCase):
         self.experiment = experiment
         self.vertical_coordinate = vertical_coordinate
         self.time_varying_forcing = time_varying_forcing
+        self.time_varying_load = time_varying_load
         self.thin_film_present = thin_film_present
 
         if resolution == int(resolution):
@@ -126,6 +132,7 @@ class OceanTest(TestCase):
         resolution = self.resolution
         vertical_coordinate = self.vertical_coordinate
         thin_film_present = self.thin_film_present
+        time_varying_load = self.time_varying_load
         config = self.config
         experiment = self.experiment
 
@@ -135,8 +142,13 @@ class OceanTest(TestCase):
         # Width of the thin film region
         nx_thin_film = 10
 
-        if experiment in ['thin_film_Ocean0']:
+        if 'thin_film' in experiment:
             config.set('isomip_plus', 'min_column_thickness', '1e-3')
+
+        if 'wetting' in experiment:
+            config.set('isomip_plus_forcing', 'scales', '1.0, 2.0, 2.0')
+        if 'drying' in experiment:
+            config.set('isomip_plus_forcing', 'scales', '1.0, 0.8, 0.6')
 
         if experiment in ['Ocean0', 'Ocean2', 'Ocean3']:
             # warm initial conditions
@@ -179,6 +191,8 @@ class OceanTest(TestCase):
         config.set('isomip_plus', 'forward_threads', '1')
 
         config.set('vertical_grid', 'coord_type', vertical_coordinate)
+        if vertical_coordinate in ['sigma']:
+            config.set('vertical_grid', 'vert_levels', '3')
 
         for step_name in self.steps:
             if step_name in ['ssh_adjustment', 'performance', 'simulation']:
