@@ -2,6 +2,8 @@ import os
 import shutil
 import xarray
 import time
+import numpy
+#import gsw
 
 from compass.model import run_model
 from compass.step import Step
@@ -66,7 +68,9 @@ class Forward(Step):
         self.add_namelist_file('compass.ocean.tests.isomip_plus',
                                'namelist.forward')
 
-        options = get_time_steps(resolution)
+        options = dict()
+        if not thin_film_present:
+            options = get_time_steps(resolution)
 
         if run_duration is not None:
             options['config_run_duration'] = run_duration
@@ -150,6 +154,37 @@ class Forward(Step):
             plotter.plot_3d_field_top_bot_section(
                 ds.salinity, nameInTitle='salinity', prefix='salin',
                 units='PSU', vmin=33.8, vmax=34.7, cmap='cmo.haline')
+            #section = config['isomip_plus']
+            #max_bottom_depth = -config.getfloat('vertical_grid', 'bottom_depth')
+            #z = numpy.arange(0,max_bottom_depth,max_bottom_depth/100)
+            #init_top_temp = section.getfloat('init_top_temp')
+            #init_bot_temp = section.getfloat('init_bot_temp')
+            #init_top_sal = section.getfloat('init_top_sal')
+            #init_bot_sal = section.getfloat('init_bot_sal')
+            #bottomPressure = bottomPressure + gsw.rho()
+            #bottomPressure = ds.pressure.isel(nVertLevels=2)
+            #topPressure = ds.pressure.isel(nVertLevels=0)
+            #field = ds.landIcePressure - topPressure
+            #print(f'min(bottomPressure)={numpy.min(bottomPressure.values)}')
+            #print(f'max(bottomPressure)={numpy.max(bottomPressure.values)}')
+            #print(f'min(field)={numpy.min(field.values)}')
+            #print(f'max(field)={numpy.max(field.values)}')
+            #plotter.plot_horiz_series(ds.landIcePressure,
+            #                          'landIcePressure', 'landIcePressure',
+            #                          True, vmin=1e3, vmax=1e7, cmap_scale='log')
+            #plotter.plot_horiz_series(topPressure,
+            #                          'topPressure', 'topPressure',
+            #                          True, vmin=1e3, vmax=1e7, cmap_scale='log')
+            #plotter.plot_horiz_series(bottomPressure,
+            #                          'bottomPressure', 'bottomPressure',
+            #                          True, vmin=1e3, vmax=1e7, cmap_scale='log')
+            #plotter.plot_horiz_series(field,
+            #                          'excesslandIcePressure', 'excesslandIcePressure',
+            #                          True, vmin=-1e2, vmax=1e2, cmap='cmo.balance')
+            plotter.plot_horiz_series(ds.ssh + ds.bottomDepth, 
+                                      'H', 'H', True,
+                                      vmin=3e-3+3e-10, vmax=700, 
+                                      cmap_set_under='r', cmap_scale='log')
 
         if self.name == 'simulation':
             update_evaporation_flux(in_forcing_file='forcing_data_init.nc',
