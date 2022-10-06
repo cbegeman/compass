@@ -85,6 +85,9 @@ class Viz(Step):
                                   vmin=3e-3+1e-10, vmax=10, cmap_set_under='r')
         plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True,
                                   cmap='cmo.curl', vmin=-1, vmax=1)
+        delice = dsOut.landIcePressure-dsOut.landIcePressure[0,:]
+        plotter.plot_horiz_series(delice, 'delLandIcePressure', 'delLandIcePressure', 
+                                  True, cmap='cmo.curl')
 
         ds = xarray.open_mfdataset(
             '{}/timeSeriesStatsMonthly*.nc'.format(sim_dir),
