@@ -109,25 +109,26 @@ class OceanTest(TestCase):
                     time_varying_forcing=time_varying_forcing,
                     thin_film_present=thin_film_present))
 
-        self.add_step(
-            Forward(test_case=self, name='simulation', resolution=resolution,
-                    experiment=experiment,
-                    run_duration='0000-01-00_00:00:00',
-                    vertical_coordinate=vertical_coordinate,
-                    tidal_forcing=tidal_forcing,
-                    time_varying_forcing=time_varying_forcing,
-                    thin_film_present=thin_film_present),
-            run_by_default=False)
+        if not tidal_forcing:
+            self.add_step(
+                Forward(test_case=self, name='simulation', resolution=resolution,
+                        experiment=experiment,
+                        run_duration='0000-01-00_00:00:00',
+                        vertical_coordinate=vertical_coordinate,
+                        tidal_forcing=tidal_forcing,
+                        time_varying_forcing=time_varying_forcing,
+                        thin_film_present=thin_film_present),
+                run_by_default=True)
 
-        self.add_step(
-            Streamfunction(test_case=self, resolution=resolution,
-                           experiment=experiment),
-            run_by_default=False)
+            self.add_step(
+                Streamfunction(test_case=self, resolution=resolution,
+                               experiment=experiment),
+                run_by_default=True)
 
         self.add_step(
             Viz(test_case=self, resolution=resolution, experiment=experiment,
                 tidal_forcing=tidal_forcing),
-            run_by_default=False)
+            run_by_default=True)
 
         if resolution in [2., 5.]:
             self.add_step(
