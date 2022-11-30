@@ -20,6 +20,7 @@
                   input_interval="initial_only"
                   type="input">
     <var name="tidalInputMask"/>
+    <var name="riverRunoffFlux"/>
 </stream>
 
 <stream name="output"
@@ -36,6 +37,7 @@
     <var name="xtime"/>
     <var name="zMid"/>
     <var name="tidalInputMask"/>
+    <var name="riverRunoffFlux"/>
     <var name="wettingVelocityFactor"/>
 </stream>
 
