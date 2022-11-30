@@ -102,6 +102,8 @@ class Viz(Step):
             delssh = dsOut.ssh-dsOut.ssh[0, :]
             plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True,
                                       cmap='cmo.curl', vmin=-1, vmax=1)
+            plotter.plot_horiz_series(dsOut.wettingVelocityFactor[:, :, 0],
+                                      'wettingVelocityFactor', 'wettingVelocityFactor', True)
 
         if os.path.exists(f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc'):
             ds = xarray.open_mfdataset(

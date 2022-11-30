@@ -39,6 +39,7 @@
     <var_array name="landIceInterfaceTracers"/>
     <var name="daysSinceStartOfSim"/>
     <var name="layerThickness"/>
+    <var name="wettingVelocityFactor"/>
     <var name="density"/>
     <var name="potentialDensity"/>
     <var name="ssh"/>
@@ -81,6 +82,7 @@
     <var name="kineticEnergyCell"/>
     <var name="vertVelocityTop"/>
     <var name="layerThickness"/>
+    <var name="wettingVelocityFactor"/>
     <var name="zMid"/>
     <var name="ssh"/>
     <var name="landIcePressure"/>
