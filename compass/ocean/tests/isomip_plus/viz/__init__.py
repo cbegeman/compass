@@ -72,7 +72,8 @@ class Viz(Step):
         out_dir = '.'
 
         dsMesh = xarray.open_dataset(f'{sim_dir}/init.nc')
-        dsOut = xarray.open_dataset(f'{sim_dir}/output.nc'.format(sim_dir))
+        dsOut = xarray.open_dataset(f'{sim_dir}/output.nc')
+        dsIce = xarray.open_dataset(f'{sim_dir}/land_ice_fluxes.nc')
         dsForcing = xarray.open_dataset(f'{sim_dir}/forcing_data_init.nc')
 
         plotter = MoviePlotter(inFolder=sim_dir,
@@ -98,12 +99,39 @@ class Viz(Step):
                                   vmax=700, cmap_set_under='r',
                                   cmap_scale='log')
 
-        if 'tidal' in expt:
-            delssh = dsOut.ssh-dsOut.ssh[0, :]
-            plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True,
-                                      cmap='cmo.curl', vmin=-1, vmax=1)
-            plotter.plot_horiz_series(dsOut.wettingVelocityFactor[:, :, 0],
-                                      'wettingVelocityFactor', 'wettingVelocityFactor', True)
+        #if 'tidal' in expt:
+        delssh = dsOut.ssh-dsOut.ssh[0, :]
+        plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True,
+                                  cmap='cmo.curl', vmin=-1, vmax=1)
+        #plotter.plot_horiz_series(dsOut.gradSSHX, 'gradSSHX', 'gradSSHX', True,
+        #                          cmap='cmo.curl')
+        #plotter.plot_horiz_series(dsOut.gradSSHY, 'gradSSHY', 'gradSSHY', True,
+        #                          cmap='cmo.curl')
+        plotter.plot_horiz_series(dsOut.surfaceStressMagnitude, 'surfaceStress',
+                                  'surfaceStress', True)
+        plotter.plot_horiz_series(dsIce.topDragMagnitude, 'topDrag',
+                                  'topDrag', True)
+        plotter.plot_horiz_series(dsIce.landIceFreshwaterFlux, 'FWF',
+                                  'FWF', True)
+        #plotter.plot_horiz_series(dsOut.tendLayerThickness, 'tendLayerThickness',
+        #                          'tendLayerThickness', True)
+        #plotter.plot_horiz_series(dsOut.landIcePressure, 'landIcePressure',
+        #                          'landIcePressure', True)
+        # need to plot on edges
+        #plotter.plot_horiz_series(dsOut.wettingVelocityFactor[:, :, 0],
+        #                          'wettingVelocityFactor', 'wettingVelocityFactor', True)
+        delice = dsOut.landIcePressure-dsOut.landIcePressure[0, :]
+        plotter.plot_horiz_series(delice, 'delLandIcePressure',
+                                  'delLandIcePressure', True,
+                                  cmap='cmo.curl')
+        delpressure = dsOut.pressure[:, :, 0] - dsOut.pressure[0, :, 0]
+        maxval = numpy.max(numpy.abs(delpressure))
+        plotter.plot_horiz_series(delpressure, 'delpressure',
+                                  'delpressure', True, cmap='cmo.curl', vmin=-1*maxval, vmax=maxval)
+        # excesspressure isn't appropriate because pressure is at cell centers
+        #excesspressure = dsOut.pressure[:, :, 0] - dsOut.landIcePressure[0, :]
+        #plotter.plot_horiz_series(excesspressure, 'excesspressure',
+        #                          'excesspressure', True, cmap='cmo.curl')
 
         if os.path.exists(f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc'):
             ds = xarray.open_mfdataset(
