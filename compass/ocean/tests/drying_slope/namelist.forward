@@ -21,3 +21,4 @@ config_use_cvmix=.false.
 config_use_implicit_bottom_drag=.false.
 config_use_debugTracers=.true.
 config_check_ssh_consistency=.true.
+config_use_bulk_thickness_flux=.true.
