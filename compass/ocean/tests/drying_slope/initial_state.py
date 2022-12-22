@@ -35,7 +35,7 @@ class InitialState(Step):
                               'streams.init', mode='init')
 
         for file in ['base_mesh.nc', 'culled_mesh.nc', 'culled_graph.info',
-                     'ocean.nc']:
+                     'init_mode_forcing_data.nc', 'ocean.nc']:
             self.add_output_file(file)
 
         self.add_model_as_input()
@@ -79,3 +79,10 @@ class InitialState(Step):
         write_netcdf(dsMesh, 'culled_mesh.nc')
         run_model(self, namelist='namelist.ocean',
                   streams='streams.ocean')
+
+        dsForcing = xarray.open_dataset('init_mode_forcing_data.nc')
+        xCell = dsMesh.xCell
+        dsForcing['rainFlux'] = 1.0 * xarray.ones_like(xCell)
+        dsForcing['riverRunoffFlux'] = 0.0 * xarray.ones_like(xCell)
+
+        write_netcdf(dsForcing, 'forcing.nc')

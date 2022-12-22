@@ -43,6 +43,8 @@ class Viz(Step):
         self.times = times
         self.datatypes = datatypes
 
+        self.add_input_file(filename='forcing.nc',
+                            target='../initial_state/forcing.nc')
         if damping_coeffs is None:
             self.add_input_file(filename='output.nc',
                                 target='../forward/output.nc')
@@ -110,8 +112,9 @@ class Viz(Step):
         for i in range(naxes):
             ax = plt.subplot(naxes, 1, i+1)
             ds = xarray.open_dataset(ncFilename[i])
+            dsForcing = xarray.open_dataset('forcing.nc')
             ssh = ds.ssh
-            ympas = ds.ssh.where(ds.tidalInputMask).mean('nCells').values
+            ympas = ds.ssh.where(dsForcing.tidalInputMask).mean('nCells').values
             xmpas = numpy.linspace(0, 1.0, len(ds.xtime))*12.0
             ax.plot(xmpas, ympas, marker='o', label='MPAS-O forward',
                     color=colors['MPAS-O'])

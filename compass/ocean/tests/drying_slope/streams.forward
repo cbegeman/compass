@@ -21,6 +21,7 @@
                   type="input">
     <var name="tidalInputMask"/>
     <var name="riverRunoffFlux"/>
+    <var name="rainFlux"/>
 </stream>
 
 <stream name="output"
@@ -36,8 +37,6 @@
     <var name="normalVelocity"/>
     <var name="xtime"/>
     <var name="zMid"/>
-    <var name="tidalInputMask"/>
-    <var name="riverRunoffFlux"/>
     <var name="wettingVelocityFactor"/>
 </stream>
 
