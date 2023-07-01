@@ -8,3 +8,4 @@ config_mom_del2 = 10.0
 config_implicit_constant_bottom_drag_coeff = 1.0e-2
 config_cvmix_background_scheme = 'none'
 config_use_cvmix_convection = .true.
+config_thickness_flux_type = 'upwind'

@@ -15,3 +15,4 @@ config_implicit_constant_bottom_drag_coeff = 3.0e-3
 config_use_activeTracers_surface_bulk_forcing = .false.
 config_use_activeTracers_surface_restoring = .true.
 config_use_activeTracers_interior_restoring = .true.
+config_thickness_flux_type = 'upwind'

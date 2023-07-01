@@ -30,3 +30,4 @@ config_use_debugTracers = .true.
 config_AM_mixedLayerDepths_enable = .false.
 config_use_activeTracers_surface_bulk_forcing = .false.
 config_check_ssh_consistency = .false.
+config_thickness_flux_type = 'upwind'
