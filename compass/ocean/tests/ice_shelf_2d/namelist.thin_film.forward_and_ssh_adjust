@@ -1,0 +1,8 @@
+config_time_integrator='RK4'
+config_use_wetting_drying=.true.
+config_prevent_drying=.true.
+config_zero_drying_velocity = .true.
+config_thickness_flux_type='upwind'
+config_zero_drying_velocity_ramp = .true.
+config_zero_drying_velocity_ramp_hmin = 1e-2
+config_zero_drying_velocity_ramp_hmin = 1e-1

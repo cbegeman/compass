@@ -23,7 +23,7 @@ class Default(TestCase):
     """
 
     def __init__(self, test_group, resolution, coord_type,
-                 tidal_forcing=False):
+                 tidal_forcing=False, thin_film=False):
         """
         Create the test case
 
@@ -44,8 +44,11 @@ class Default(TestCase):
             with_frazil = False
         else:
             with_frazil = True
+        if thin_film:
+            name = f'{name}_thin_film'
         self.resolution = resolution
         self.coord_type = coord_type
+        self.thin_film = thin_film
         if resolution >= 1e3:
             res_name = f'{int(resolution / 1e3)}km'
         else:
@@ -59,18 +62,20 @@ class Default(TestCase):
         self.add_step(
             SshAdjustment(test_case=self, coord_type=coord_type,
                           resolution=resolution, ntasks=4, openmp_threads=1,
-                          tidal_forcing=tidal_forcing))
+                          tidal_forcing=tidal_forcing, thin_film=thin_film))
         self.add_step(
             Forward(test_case=self, ntasks=4, openmp_threads=1,
                     coord_type=coord_type, resolution=resolution,
-                    with_frazil=with_frazil, tidal_forcing=tidal_forcing))
+                    with_frazil=with_frazil, tidal_forcing=tidal_forcing,
+                    thin_film=thin_film))
         self.add_step(Viz(test_case=self), run_by_default=False)
 
     def configure(self):
         """
         Modify the configuration options for this test case.
         """
-        ice_shelf_2d.configure(self.resolution, self.coord_type, self.config)
+        ice_shelf_2d.configure(self.resolution, self.coord_type,
+                               self.thin_film, self.config)
 
     # no run() method is needed
 

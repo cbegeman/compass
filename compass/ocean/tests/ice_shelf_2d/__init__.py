@@ -23,11 +23,15 @@ class IceShelf2d(TestGroup):
                     Default(test_group=self, resolution=resolution,
                             coord_type=coord_type, tidal_forcing=True))
                 self.add_test_case(
+                    Default(test_group=self, resolution=resolution,
+                            coord_type=coord_type, tidal_forcing=True,
+                            thin_film=True))
+                self.add_test_case(
                     RestartTest(test_group=self, resolution=resolution,
                                 coord_type=coord_type))
 
 
-def configure(resolution, coord_type, config):
+def configure(resolution, coord_type, thin_film, config):
     """
     Modify the configuration options for this test case
 
@@ -52,6 +56,12 @@ def configure(resolution, coord_type, config):
     config.set('ice_shelf_2d', 'nx', f'{nx}')
     config.set('ice_shelf_2d', 'ny', f'{ny}')
     config.set('ice_shelf_2d', 'dc', f'{dc}')
+
+    if thin_film:
+        thin_film_thickness = config.getfloat(
+            'ice_shelf_2d', 'thin_film_thickness')
+        config.set('ice_shelf_2d', 'y1_water_column_thickness',
+                   f'{thin_film_thickness}')
 
     config.set('vertical_grid', 'coord_type', coord_type)
     if coord_type == 'z-level':

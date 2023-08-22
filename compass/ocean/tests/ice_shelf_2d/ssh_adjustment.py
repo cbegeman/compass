@@ -10,7 +10,8 @@ class SshAdjustment(Step):
     shelf to match the sea-surface height as part of ice-shelf 2D test cases
     """
     def __init__(self, test_case, resolution, coord_type, ntasks=1,
-                 min_tasks=None, openmp_threads=1, tidal_forcing=False):
+                 min_tasks=None, openmp_threads=1, tidal_forcing=False,
+                 thin_film=False):
         """
         Create the step
 
@@ -40,6 +41,7 @@ class SshAdjustment(Step):
         """
         self.resolution = resolution
         self.tidal_forcing = tidal_forcing
+        self.thin_film = thin_film
         if min_tasks is None:
             min_tasks = ntasks
         super().__init__(test_case=test_case, name='ssh_adjustment',
@@ -54,6 +56,9 @@ class SshAdjustment(Step):
             self.add_namelist_file(
                 'compass.ocean.tests.ice_shelf_2d',
                 'namelist.single_layer.forward_and_ssh_adjust')
+        if thin_film:
+            self.add_namelist_file('compass.ocean.tests.ice_shelf_2d',
+                                   'namelist.thin_film.forward_and_ssh_adjust')
 
         # we don't want the global stats AM for this run
         self.add_namelist_options({'config_AM_globalStats_enable': '.false.'})
@@ -87,9 +92,20 @@ class SshAdjustment(Step):
             dt_per_km = min(dt_per_km,
                             config.getfloat('ice_shelf_2d',
                                             'dt_per_km_tidal_forcing'))
+        if self.thin_film:
+            dt_per_km = min(dt_per_km,
+                            config.getfloat('ice_shelf_2d',
+                                            'dt_per_km_thin_film'))
         dt = dt_per_km * self.resolution / 1.e3
+        thin_film_thickness = config.getfloat('ice_shelf_2d',
+                                              'thin_film_thickness')
         dt_str = time.strftime('%H:%M:%S', time.gmtime(dt))
-        self.update_namelist_at_runtime({'config_dt': dt_str})
+        self.update_namelist_at_runtime(
+            {'config_dt': dt_str,
+             'config_drying_min_cell_height': f'{thin_film_thickness}',
+             'config_zero_drying_velocity_ramp_hmin': f'{thin_film_thickness}',
+             'config_zero_drying_velocity_ramp_hmax':
+             f'{thin_film_thickness * 10.}'})
         iteration_count = config.getint('ssh_adjustment', 'iterations')
         adjust_ssh(variable='landIcePressure', iteration_count=iteration_count,
                    step=self)
