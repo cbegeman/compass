@@ -138,7 +138,7 @@ class InitialState(Step):
         temperature = np.multiply(temperature, T_itp77)
         salinity = np.multiply(salinity, S_itp77)
         temperature += fz * (fy * deltaT - deltaTz)
-        salinity += fz * (fy * deltaS - deltaSz)
+        salinity += fz * (fy * deltaSy - deltaSz)
         ds['temperature'] = temperature
         ds['salinity'] = salinity
 
