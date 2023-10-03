@@ -21,7 +21,8 @@ class LogLaw(TestCase):
         The type of vertical coordinate (``sigma``, ``single_layer``, etc.)
     """
 
-    def __init__(self, test_group, resolution, coord_type, method):
+    def __init__(self, test_group, resolution, coord_type, method,
+                 time_integrator):
         """
         Create the test case
 
@@ -35,6 +36,9 @@ class LogLaw(TestCase):
 
         coord_type : str
             The type of vertical coordinate (``sigma``, ``single_layer``)
+
+        time_integrator : {'rk4', 'split_explicit'}, str
+            The time integration scheme to use for this test case
         """
         name = 'loglaw'
 
@@ -44,7 +48,7 @@ class LogLaw(TestCase):
             res_name = f'{int(resolution*1e3)}m'
         else:
             res_name = f'{int(resolution)}km'
-        subdir = f'{coord_type}/{method}/{res_name}/{name}'
+        subdir = f'{coord_type}/{method}_{time_integrator}/{res_name}/{name}'
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
         self.add_step(InitialState(test_case=self, resolution=resolution))
@@ -58,7 +62,7 @@ class LogLaw(TestCase):
         forward_step = Forward(test_case=self, resolution=resolution,
                                ntasks=ntasks, min_tasks=min_tasks,
                                openmp_threads=1,
-                               coord_type=coord_type)
+                               time_integrator=time_integrator)
         forward_step.add_namelist_options(
             {'config_implicit_bottom_drag_type': "'loglaw'"})
         self.add_step(forward_step)

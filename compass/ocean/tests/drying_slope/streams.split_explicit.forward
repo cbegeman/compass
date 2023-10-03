@@ -1,0 +1,13 @@
+<streams>
+
+<stream name="output"
+        type="output"
+        filename_template="output.nc"
+        output_interval="0000-00-00_00:00:01"
+        clobber_mode="truncate">
+
+    <var name="wettingVelocityBarotropic"/>
+    <var name="wettingVelocityBaroclinic"/>
+</stream>
+
+</streams>

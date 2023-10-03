@@ -18,21 +18,33 @@ class DryingSlope(TestGroup):
         super().__init__(mpas_core=mpas_core, name='drying_slope')
 
         for method in ['standard', 'ramp']:
-            for coord_type in ['sigma', 'single_layer']:
-                for resolution in [0.25, 1.]:
+            for time_integrator in ['rk4', 'split_explicit']:
+                for coord_type in ['sigma']:
+                    for resolution in [0.25, 1.]:
+                        self.add_test_case(
+                            Default(test_group=self, resolution=resolution,
+                                    coord_type=coord_type, method=method,
+                                    time_integrator=time_integrator))
                     self.add_test_case(
-                        Default(test_group=self, resolution=resolution,
-                                coord_type=coord_type, method=method))
+                        Convergence(test_group=self,
+                                    coord_type=coord_type,
+                                    method=method,
+                                    time_integrator=time_integrator))
                     self.add_test_case(
                         Decomp(test_group=self, resolution=resolution,
                                coord_type=coord_type, method=method))
-            for coord_type in ['sigma']:
-                self.add_test_case(
-                    Convergence(test_group=self,
-                                coord_type=coord_type,
-                                method=method))
-        for coord_type in ['sigma', 'single_layer']:
-            for resolution in [0.25, 1.]:
-                self.add_test_case(
-                    LogLaw(test_group=self, resolution=resolution,
-                           coord_type=coord_type, method='standard'))
+            for time_integrator in ['rk4']:
+                for coord_type in ['single_layer']:
+                    for resolution in [0.25, 1.]:
+                        self.add_test_case(
+                            Default(test_group=self, resolution=resolution,
+                                    coord_type=coord_type, method=method,
+                                    time_integrator=time_integrator))
+        for method in ['standard']:
+            for coord_type in ['sigma', 'single_layer']:
+                for time_integrator in ['rk4']:
+                    for resolution in [0.25, 1.]:
+                        self.add_test_case(
+                            LogLaw(test_group=self, resolution=resolution,
+                                   coord_type=coord_type, method=method,
+                                   time_integrator=time_integrator))

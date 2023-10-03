@@ -21,12 +21,16 @@ class Convergence(TestCase):
     coord_type : str
         The type of vertical coordinate (``sigma``, ``single_layer``, etc.)
 
-    damping_coeffs: list of float
+    damping_coeffs : list of float
         The damping coefficients at which to evaluate convergence. Must be of
         length 1.
+
+    time_integrator : {'rk4', 'split_explicit'}, str
+        The time integration scheme to use for this test case
     """
 
-    def __init__(self, test_group, coord_type, method):
+    def __init__(self, test_group, coord_type, method,
+                 time_integrator):
         """
         Create the test case
 
@@ -40,13 +44,17 @@ class Convergence(TestCase):
 
         method: str
             The wetting-and-drying method (``standard``, ``ramp``)
+
+        time_integrator : {'rk4', 'split_explicit'}, str
+            The time integration scheme to use for this test case
         """
         name = 'convergence'
 
         self.coord_type = coord_type
+        self.time_integrator = time_integrator
         damping_coeffs = [0.01]
         self.damping_coeffs = damping_coeffs
-        subdir = f'{coord_type}/{method}/{name}'
+        subdir = f'{coord_type}/{method}_{time_integrator}/{name}'
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
         self.resolutions = None
@@ -101,13 +109,15 @@ class Convergence(TestCase):
                                    ntasks=ntasks, min_tasks=min_tasks,
                                    openmp_threads=1,
                                    damping_coeff=self.damping_coeffs[0],
-                                   coord_type=self.coord_type)
+                                   coord_type=self.coord_type,
+                                   time_integrator=self.time_integrator)
             if method == 'ramp':
                 forward_step.add_namelist_options(
                     {'config_zero_drying_velocity_ramp': ".true."})
             self.add_step(forward_step)
         self.add_step(Analysis(test_case=self,
                                resolutions=resolutions,
+                               coord_type=self.coord_type,
                                damping_coeff=self.damping_coeffs[0]))
 
     def validate(self):

@@ -36,6 +36,7 @@
     <var name="xtime"/>
     <var name="zMid"/>
     <var name="tidalInputMask"/>
+    <var name="wettingVelocityFactor"/>
 </stream>
 
 </streams>
