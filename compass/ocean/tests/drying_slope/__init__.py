@@ -32,7 +32,8 @@ class DryingSlope(TestGroup):
                                     time_integrator=time_integrator))
                     self.add_test_case(
                         Decomp(test_group=self, resolution=resolution,
-                               coord_type=coord_type, method=method))
+                               coord_type=coord_type, method=method,
+                               time_integrator=time_integrator))
             for time_integrator in ['rk4']:
                 for coord_type in ['single_layer']:
                     for resolution in [0.25, 1.]:

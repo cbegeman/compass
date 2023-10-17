@@ -18,7 +18,8 @@ class Decomp(TestCase):
         The type of vertical coordinate (``sigma``, ``single_layer``, etc.)
     """
 
-    def __init__(self, test_group, resolution, coord_type, method):
+    def __init__(self, test_group, resolution, coord_type, method,
+                 time_integrator):
         """
         Create the test case
 
@@ -35,6 +36,9 @@ class Decomp(TestCase):
 
         method : str
             The type of wetting-and-drying algorithm
+
+        time_integrator : {'rk4', 'split_explicit'}, str
+            The time integration scheme to use for this test case
         """
         name = 'decomp'
         self.resolution = resolution
@@ -43,7 +47,7 @@ class Decomp(TestCase):
             res_name = f'{int(resolution*1e3)}m'
         else:
             res_name = f'{int(resolution)}km'
-        subdir = f'{coord_type}/{method}/{res_name}/{name}'
+        subdir = f'{coord_type}/{method}_{time_integrator}/{res_name}/{name}'
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
         self.add_step(InitialState(test_case=self, resolution=resolution))
@@ -58,7 +62,8 @@ class Decomp(TestCase):
                                    resolution=resolution,
                                    ntasks=procs, openmp_threads=1,
                                    damping_coeff=damping_coeff,
-                                   coord_type=coord_type)
+                                   coord_type=coord_type,
+                                   time_integrator=time_integrator)
             if method == 'ramp':
                 forward_step.add_namelist_options(
                     {'config_zero_drying_velocity_ramp': ".true."})
