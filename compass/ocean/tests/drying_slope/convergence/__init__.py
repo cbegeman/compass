@@ -117,7 +117,6 @@ class Convergence(TestCase):
             self.add_step(forward_step)
         self.add_step(Analysis(test_case=self,
                                resolutions=resolutions,
-                               coord_type=self.coord_type,
                                damping_coeff=self.damping_coeffs[0]))
 
     def validate(self):
