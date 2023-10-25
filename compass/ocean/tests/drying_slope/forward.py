@@ -12,7 +12,7 @@ class Forward(Step):
     def __init__(self, test_case, resolution, name='forward', subdir=None,
                  input_path='../initial_state', ntasks=1, min_tasks=None,
                  openmp_threads=1, time_integrator='rk4', damping_coeff=None,
-                 coord_type='sigma'):
+                 coord_type='sigma', forcing_type='monochromatic'):
         """
         Create a forward step
 
@@ -75,6 +75,9 @@ class Forward(Step):
             self.add_namelist_options(options)
             self.add_streams_file('compass.ocean.tests.drying_slope',
                                   f'streams.{time_integrator}.forward')
+
+        options = {'config_tidal_forcing_model': f'"{forcing_type}"'}
+        self.add_namelist_options(options)
 
         self.add_input_file(filename='mesh.nc',
                             target=f'{input_path}/culled_mesh.nc')

@@ -83,7 +83,8 @@ class Baroclinic(TestCase):
                                        openmp_threads=1,
                                        damping_coeff=damping_coeff,
                                        coord_type=coord_type,
-                                       time_integrator=time_integrator)
+                                       time_integrator=time_integrator,
+                                       forcing_type='linear')
                 if method == 'ramp':
                     forward_step.add_namelist_options(
                         {'config_zero_drying_velocity_ramp': ".true."})
