@@ -1,3 +1,4 @@
+from compass.ocean.tests.drying_slope.baroclinic import Baroclinic
 from compass.ocean.tests.drying_slope.convergence import Convergence
 from compass.ocean.tests.drying_slope.decomp import Decomp
 from compass.ocean.tests.drying_slope.default import Default
@@ -34,11 +35,17 @@ class DryingSlope(TestGroup):
                         Decomp(test_group=self, resolution=resolution,
                                coord_type=coord_type, method=method,
                                time_integrator=time_integrator))
-        for method in ['standard']:
-            for coord_type in ['sigma', 'single_layer']:
-                for time_integrator in ['rk4']:
+            for time_integrator in ['rk4']:
+                for coord_type in ['sigma', 'single_layer']:
                     for resolution in [0.25, 1.]:
                         self.add_test_case(
                             LogLaw(test_group=self, resolution=resolution,
                                    coord_type=coord_type, method=method,
                                    time_integrator=time_integrator))
+            for time_integrator in ['split_explicit']:
+                for coord_type in ['sigma']:
+                    for resolution in [0.25, 1.]:
+                        self.add_test_case(
+                            Baroclinic(test_group=self, resolution=resolution,
+                                       coord_type=coord_type, method=method,
+                                       time_integrator=time_integrator))

@@ -26,6 +26,7 @@ class InitialState(Step):
                          min_tasks=1, openmp_threads=1)
 
         self.resolution = resolution
+        self.baroclinic = baroclinic
 
         for file in ['base_mesh.nc', 'culled_mesh.nc', 'culled_graph.info',
                      'initial_state.nc', 'forcing.nc']:
@@ -56,6 +57,8 @@ class InitialState(Step):
         plug_temperature = section.getfloat('plug_temperature')
         background_temperature = section.getfloat('background_temperature')
         background_salinity = section.getfloat('background_salinity')
+        right_salinity = section.getfloat('right_salinity')
+        left_salinity = section.getfloat('left_salinity')
         coriolis_parameter = section.getfloat('coriolis_parameter')
 
         # Check config options
@@ -110,15 +113,21 @@ class InitialState(Step):
 
         plug_width = domain_length * plug_width_frac
         y_plug_boundary = y_min + plug_width
-        ds['temperature'] = xr.where(y_cell < y_plug_boundary,
-                                     plug_temperature, background_temperature)
+        temperature = xr.where(y_cell < y_plug_boundary,
+                               plug_temperature, background_temperature)
+        ds['temperature'] = temperature.expand_dims(dim='Time', axis=0)
         ds['tracer1'] = xr.where(y_cell < y_plug_boundary, 1.0, 0.0)
-        ds['salinity'] = background_salinity * xr.ones_like(y_cell)
+        if self.baroclinic:
+            salinity = (right_salinity - (y_max - y_cell) / drying_length *
+                        (right_salinity - left_salinity))
+        else:
+            salinity = background_salinity * xr.ones_like(y_cell)
+        ds['salinity'] = salinity.expand_dims(dim='Time', axis=0)
+
         normalVelocity = xr.zeros_like(ds_mesh.xEdge)
         normalVelocity, _ = xr.broadcast(normalVelocity, ds.refBottomDepth)
         normalVelocity = normalVelocity.transpose('nEdges', 'nVertLevels')
-        normalVelocity = normalVelocity.expand_dims(dim='Time', axis=0)
-        ds['normalVelocity'] = normalVelocity
+        ds['normalVelocity'] = normalVelocity.expand_dims(dim='Time', axis=0)
         ds['fCell'] = coriolis_parameter * xr.ones_like(ds.xCell)
         ds['fEdge'] = coriolis_parameter * xr.ones_like(ds.xEdge)
         ds['fVertex'] = coriolis_parameter * xr.ones_like(ds.xVertex)

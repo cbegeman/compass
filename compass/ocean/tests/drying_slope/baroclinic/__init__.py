@@ -8,9 +8,9 @@ from compass.testcase import TestCase
 from compass.validate import compare_variables
 
 
-class Default(TestCase):
+class Baroclinic(TestCase):
     """
-    The default drying_slope test case
+    The baroclinic drying_slope test case
 
     Attributes
     ----------
@@ -43,7 +43,7 @@ class Default(TestCase):
         time_integrator : {'rk4', 'split_explicit'}, str
             The time integration scheme to use for this test case
         """
-        name = 'default'
+        name = 'baroclinic'
 
         self.resolution = resolution
         self.coord_type = coord_type
@@ -54,7 +54,8 @@ class Default(TestCase):
         subdir = f'{coord_type}/{method}_{time_integrator}/{res_name}/{name}'
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
-        self.add_step(InitialState(test_case=self, resolution=resolution))
+        self.add_step(InitialState(test_case=self, resolution=resolution,
+                                   baroclinic=True))
         damping_coeffs = None
         config = CompassConfigParser()
         config.add_from_package('compass.ocean.tests.drying_slope',
@@ -109,7 +110,7 @@ class Default(TestCase):
         """
         Change config options as needed
         """
-        right_bottom_depth = self.config.getfloat('drying_slope',
+        right_bottom_depth = self.config.getfloat('drying_slope_baroclinic',
                                                   'right_bottom_depth')
         self.config.set('vertical_grid', 'bottom_depth',
                         str(right_bottom_depth))
