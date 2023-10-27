@@ -1,3 +1,4 @@
+import numpy as np
 import xarray as xr
 from mpas_tools.io import write_netcdf
 from mpas_tools.mesh.conversion import convert, cull
@@ -57,9 +58,8 @@ class InitialState(Step):
         plug_temperature = section.getfloat('plug_temperature')
         background_temperature = section.getfloat('background_temperature')
         background_salinity = section.getfloat('background_salinity')
-        right_salinity = section.getfloat('right_salinity')
-        left_salinity = section.getfloat('left_salinity')
         coriolis_parameter = section.getfloat('coriolis_parameter')
+        right_tidal_height = section.getfloat('right_tidal_height')
 
         # Check config options
         if domain_length < drying_length:
@@ -101,12 +101,13 @@ class InitialState(Step):
         dc_edge_min = ds_mesh.dcEdge.min()
 
         y_cell = ds.yCell
-        max_level_cell = vert_levels
         bottom_depth = (right_bottom_depth - (y_max - y_cell) / drying_length *
                         (right_bottom_depth - left_bottom_depth))
         ds['bottomDepth'] = bottom_depth
         # Set the water column to dry everywhere
-        ds['ssh'] = -bottom_depth + thin_film_thickness * max_level_cell
+        ds['ssh'] = np.maximum(
+            right_tidal_height,
+            -bottom_depth + thin_film_thickness * vert_levels)
         # We don't use config_tidal_forcing_monochromatic_baseline because the
         # default value doesn't alter the initial state
         init_vertical_coord(config, ds)
@@ -118,6 +119,9 @@ class InitialState(Step):
         ds['temperature'] = temperature.expand_dims(dim='Time', axis=0)
         ds['tracer1'] = xr.where(y_cell < y_plug_boundary, 1.0, 0.0)
         if self.baroclinic:
+            section = config['drying_slope_baroclinic']
+            right_salinity = section.getfloat('right_salinity')
+            left_salinity = section.getfloat('left_salinity')
             salinity = (right_salinity - (y_max - y_cell) / drying_length *
                         (right_salinity - left_salinity))
         else:

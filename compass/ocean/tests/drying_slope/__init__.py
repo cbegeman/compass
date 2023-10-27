@@ -26,26 +26,20 @@ class DryingSlope(TestGroup):
                             Default(test_group=self, resolution=resolution,
                                     coord_type=coord_type, method=method,
                                     time_integrator=time_integrator))
+                        self.add_test_case(
+                            Decomp(test_group=self, resolution=resolution,
+                                   coord_type=coord_type, method=method,
+                                   time_integrator=time_integrator))
+                        self.add_test_case(
+                            LogLaw(test_group=self, resolution=resolution,
+                                   coord_type=coord_type, method=method,
+                                   time_integrator=time_integrator))
+                        self.add_test_case(
+                            Baroclinic(test_group=self, resolution=resolution,
+                                       coord_type=coord_type, method=method,
+                                       time_integrator=time_integrator))
                     self.add_test_case(
                         Convergence(test_group=self,
                                     coord_type=coord_type,
                                     method=method,
                                     time_integrator=time_integrator))
-                    self.add_test_case(
-                        Decomp(test_group=self, resolution=resolution,
-                               coord_type=coord_type, method=method,
-                               time_integrator=time_integrator))
-            for time_integrator in ['rk4']:
-                for coord_type in ['sigma', 'single_layer']:
-                    for resolution in [0.25, 1.]:
-                        self.add_test_case(
-                            LogLaw(test_group=self, resolution=resolution,
-                                   coord_type=coord_type, method=method,
-                                   time_integrator=time_integrator))
-            for time_integrator in ['split_explicit']:
-                for coord_type in ['sigma']:
-                    for resolution in [0.25, 1.]:
-                        self.add_test_case(
-                            Baroclinic(test_group=self, resolution=resolution,
-                                       coord_type=coord_type, method=method,
-                                       time_integrator=time_integrator))

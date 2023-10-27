@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from compass.ocean.tests.isomip_plus.viz.plot import MoviePlotter
 from compass.step import Step
 
 
@@ -27,7 +28,8 @@ class Viz(Step):
     datatypes : list of str
         The sources of data for comparison to the MPAS-Ocean run
     """
-    def __init__(self, test_case, damping_coeffs=None):
+    def __init__(self, test_case, damping_coeffs=None, baroclinic=False,
+                 forcing_type='monochromatic'):
         """
         Create the step
 
@@ -43,6 +45,8 @@ class Viz(Step):
         self.damping_coeffs = damping_coeffs
         self.times = times
         self.datatypes = datatypes
+        self.forcing_type = forcing_type
+        self.baroclinic = baroclinic
 
         self.add_input_file(filename='init.nc',
                             target='../initial_state/initial_state.nc')
@@ -69,8 +73,9 @@ class Viz(Step):
         section = self.config['drying_slope_viz']
         generate_movie = section.getboolean('generate_movie')
 
+        self._plot_ssh_time_series(forcing_type=self.forcing_type)
         self._plot_ssh_validation(times=self.times)
-        self._plot_ssh_time_series()
+        self._plot_horiz_ssh()
         if generate_movie:
             frames_per_second = section.getint('frames_per_second')
             movie_format = section.get('movie_format')
@@ -90,7 +95,34 @@ class Viz(Step):
         ssh = 10. * np.sin(t * np.pi / 12.) - 10.
         return ssh
 
-    def _plot_ssh_time_series(self, outFolder='.'):
+    def _plot_horiz_ssh(self):
+        ds_mesh = xr.open_dataset('init.nc')
+        ds_mesh['landIceMask'] = xr.zeros_like(ds_mesh.temperature)
+        ds = xr.open_dataset('output.nc')
+        min_column_thickness = 1e-2
+        figsize = (4, 8)
+        # sectionY is unused
+        plotter = MoviePlotter(inFolder='.',
+                               streamfunctionFolder='',
+                               outFolder='.',
+                               expt='', sectionY=1.0e3,
+                               dsMesh=ds_mesh, ds=ds,
+                               showProgress=False)
+        plotter.plot_horiz_series(da=ds.ssh,
+                                  nameInTitle='ssh', prefix='ssh',
+                                  oceanDomain=True,
+                                  vmin=-1, vmax=0,
+                                  figsize=figsize)
+        plotter.plot_horiz_series(da=ds.ssh + ds_mesh.bottomDepth,
+                                  nameInTitle='H', prefix='H',
+                                  oceanDomain=True,
+                                  vmin=min_column_thickness + 1e-10,
+                                  vmax=2.5, cmap_set_under='r',
+                                  cmap_scale='log',
+                                  figsize=figsize)
+
+    def _plot_ssh_time_series(self, outFolder='.',
+                              forcing_type='monochromatic'):
         """
         Plot ssh forcing on the right x boundary as a function of time against
         the analytical solution. The agreement should be within machine
@@ -120,8 +152,9 @@ class Viz(Step):
             xmpas = np.linspace(0, 1.0, len(ds.xtime)) * 12.0
             ax.plot(xmpas, ympas, marker='o', label='MPAS-O forward',
                     color=colors['MPAS-O'])
-            ax.plot(xSsh, ySsh, lw=3, label='analytical',
-                    color=colors['analytical'])
+            if forcing_type == 'monochromatic':
+                ax.plot(xSsh, ySsh, lw=3, label='analytical',
+                        color=colors['analytical'])
             ax.set_ylabel('Tidal amplitude (m)')
             ax.set_xlabel('Time (hrs)')
             ax.legend(frameon=False)
@@ -161,12 +194,14 @@ class Viz(Step):
             dim=xr.ALL_DIMS)
         bottom_depth = mesh_ymean.bottomDepth.values
         drying_length = self.config.getfloat('drying_slope', 'ly_analysis')
+        right_bottom_depth = self.config.getfloat('drying_slope',
+                                                  'right_bottom_depth')
         drying_length = drying_length * 1e3
         x_offset = np.max(mesh_ymean.yCell.values) - drying_length
         x = (mesh_ymean.yCell.values - x_offset) / 1000.0
 
-        xBed = np.linspace(0, 25, 100)
-        yBed = 10.0 / 25.0 * xBed
+        xBed = np.linspace(0, drying_length, 100)
+        yBed = right_bottom_depth / drying_length * xBed
 
         fig, _ = plt.subplots(nrows=naxes, ncols=1, sharex=True)
 
@@ -177,8 +212,8 @@ class Viz(Step):
                                            ['yCell', 'ssh']))
 
             ax.plot(xBed, yBed, '-k', lw=3)
-            ax.set_xlim(0, 25)
-            ax.set_ylim(-1, 11)
+            ax.set_xlim(0, drying_length)
+            ax.set_ylim(-1, 1.1 * right_bottom_depth)
             ax.invert_yaxis()
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)

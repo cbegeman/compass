@@ -137,4 +137,10 @@ class Convergence(TestCase):
         """
         Change config options as needed
         """
-        self.config.set('vertical_grid', 'coord_type', self.coord_type)
+        right_bottom_depth = 10.
+        self.config.set('drying_slope', 'right_bottom_depth',
+                        f'{right_bottom_depth}')
+        super().configure()
+        self.config.set(
+            'drying_slope', 'right_tidal_height', f'{-1 * right_bottom_depth}',
+            comment='Initial tidal height at the right side of the domain')

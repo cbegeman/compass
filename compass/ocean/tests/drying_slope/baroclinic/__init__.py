@@ -56,41 +56,27 @@ class Baroclinic(TestCase):
                          subdir=subdir)
         self.add_step(InitialState(test_case=self, resolution=resolution,
                                    baroclinic=True))
-        damping_coeffs = None
+        self.damping_coeffs = None
         config = CompassConfigParser()
         config.add_from_package('compass.ocean.tests.drying_slope',
                                 'drying_slope.cfg')
+
         section = config['drying_slope']
         ntasks_baseline = section.getint('ntasks_baseline')
         min_tasks = section.getint('min_tasks')
         ntasks = max(min_tasks, int(ceil(ntasks_baseline / resolution**2.)))
-        if coord_type == 'single_layer':
-            forward_step = Forward(test_case=self, resolution=resolution,
-                                   ntasks=ntasks, min_tasks=min_tasks,
-                                   openmp_threads=1,
-                                   coord_type=coord_type,
-                                   time_integrator=time_integrator)
-            if method == 'ramp':
-                forward_step.add_namelist_options(
-                    {'config_zero_drying_velocity_ramp': ".true."})
-            self.add_step(forward_step)
-        else:
-            damping_coeffs = [0.0025, 0.01]
-            for damping_coeff in damping_coeffs:
-                forward_step = Forward(test_case=self, resolution=resolution,
-                                       name=f'forward_{damping_coeff}',
-                                       ntasks=ntasks, min_tasks=min_tasks,
-                                       openmp_threads=1,
-                                       damping_coeff=damping_coeff,
-                                       coord_type=coord_type,
-                                       time_integrator=time_integrator,
-                                       forcing_type='linear')
-                if method == 'ramp':
-                    forward_step.add_namelist_options(
-                        {'config_zero_drying_velocity_ramp': ".true."})
-                self.add_step(forward_step)
-        self.damping_coeffs = damping_coeffs
-        self.add_step(Viz(test_case=self, damping_coeffs=damping_coeffs))
+        forward_step = Forward(test_case=self, resolution=resolution,
+                               ntasks=ntasks, min_tasks=min_tasks,
+                               openmp_threads=1,
+                               coord_type=coord_type,
+                               forcing_type='linear',
+                               time_integrator=time_integrator)
+        if method == 'ramp':
+            forward_step.add_namelist_options(
+                {'config_zero_drying_velocity_ramp': ".true."})
+        self.add_step(forward_step)
+        self.add_step(Viz(test_case=self, damping_coeffs=None,
+                          baroclinic=True, forcing_type='linear'))
 
     def validate(self):
         """
@@ -111,8 +97,12 @@ class Baroclinic(TestCase):
         """
         Change config options as needed
         """
-        right_bottom_depth = self.config.getfloat('drying_slope_baroclinic',
-                                                  'right_bottom_depth')
+        right_bottom_depth = 2.5
+        self.config.set('drying_slope', 'right_bottom_depth',
+                        f'{right_bottom_depth}')
+        self.config.set(
+            'drying_slope', 'right_tidal_height', '0.',
+            comment='Initial tidal height at the right side of the domain')
         self.config.set('vertical_grid', 'bottom_depth',
                         str(right_bottom_depth))
         self.config.set('vertical_grid', 'coord_type', self.coord_type)

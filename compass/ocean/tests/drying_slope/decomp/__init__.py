@@ -79,3 +79,17 @@ class Decomp(TestCase):
         compare_variables(test_case=self, variables=variables,
                           filename1='1proc/output.nc',
                           filename2='12proc/output.nc')
+
+    def configure(self):
+        """
+        Change config options as needed
+        """
+        right_bottom_depth = 10.
+        self.config.set('drying_slope', 'right_bottom_depth',
+                        f'{right_bottom_depth}')
+        self.config.set(
+            'drying_slope', 'right_tidal_height', f'{-1 * right_bottom_depth}',
+            comment='Initial tidal height at the right side of the domain')
+        self.config.set('vertical_grid', 'bottom_depth',
+                        str(right_bottom_depth))
+        self.config.set('vertical_grid', 'coord_type', self.coord_type)
