@@ -85,6 +85,13 @@ class Decomp(TestCase):
         Change config options as needed
         """
         right_bottom_depth = 10.
+        ly_analysis = 25.
+        y_buffer = 5.
+        ly = ly_analysis + y_buffer
+
+        self.config.set(
+            'drying_slope', 'thin_film_thickness', '1.0e-3',
+            comment='Thickness of each layer in the thin film region')
         self.config.set('drying_slope', 'right_bottom_depth',
                         f'{right_bottom_depth}')
         self.config.set(
@@ -92,4 +99,9 @@ class Decomp(TestCase):
             comment='Initial tidal height at the right side of the domain')
         self.config.set('vertical_grid', 'bottom_depth',
                         str(right_bottom_depth))
+        self.config.set(
+            'drying_slope', 'ly_analysis', f'{ly_analysis}',
+            comment='Length over which wetting and drying actually occur')
+        self.config.set(
+            'drying_slope', 'ly', f'{ly}', comment='Domain length')
         self.config.set('vertical_grid', 'coord_type', self.coord_type)
