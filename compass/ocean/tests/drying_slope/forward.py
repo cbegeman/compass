@@ -105,7 +105,11 @@ class Forward(Step):
         section = self.config['vertical_grid']
         thin_film_thickness = section.getfloat('thin_film_thickness')
         options = {'config_dt': f"'{dt}'",
-                   'config_drying_min_cell_height': f'{thin_film_thickness}'}
+                   'config_drying_min_cell_height': f'{thin_film_thickness}',
+                   'config_zero_drying_velocity_ramp_hmin':
+                   f'{thin_film_thickness}',
+                   'config_zero_drying_velocity_ramp_hmax':
+                   f'{thin_film_thickness * 2.}'}
         self.update_namelist_at_runtime(options=options,
                                         out_name='namelist.ocean')
 
