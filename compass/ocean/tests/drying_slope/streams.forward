@@ -31,6 +31,8 @@
     <stream name="mesh"/>
     <var name="layerThickness"/>
     <var name="ssh"/>
+    <var name="velocityX"/>
+    <var name="velocityY"/>
     <var name="normalVelocity"/>
     <var name="xtime"/>
     <var name="zMid"/>

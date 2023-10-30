@@ -76,6 +76,8 @@ class Viz(Step):
         self._plot_ssh_time_series(forcing_type=self.forcing_type)
         self._plot_ssh_validation(times=self.times)
         self._plot_horiz_ssh()
+        if self.baroclinic:
+            self._plot_salinity(tidx=-1, y_distance=45.)
         if generate_movie:
             frames_per_second = section.getint('frames_per_second')
             movie_format = section.get('movie_format')
@@ -119,6 +121,13 @@ class Viz(Step):
                                   vmin=min_column_thickness + 1e-10,
                                   vmax=2.5, cmap_set_under='r',
                                   cmap_scale='log',
+                                  figsize=figsize)
+        vmax = np.max(np.abs(ds.velocityX.values))
+        u = ds.velocityX.isel(nVertLevels=0)
+        plotter.plot_horiz_series(da=u,
+                                  nameInTitle='x-velocity', prefix='u',
+                                  oceanDomain=True,
+                                  vmin=-vmax, vmax=vmax,
                                   figsize=figsize)
 
     def _plot_ssh_time_series(self, outFolder='.',
@@ -166,6 +175,23 @@ class Viz(Step):
 
         plt.close(fig)
 
+    def _plot_salinity(self, tidx=None, y_distance=0., outFolder='.'):
+        """
+        Plot salinity at a point location as a function of vertical levels
+        y_distance distance in meters along y-axis
+        """
+        ds = xr.open_dataset('output.nc')
+        y_cell = ds.yCell
+        cell_idx = np.argmin(y_cell.values - y_distance / 1e3)
+        salinity = ds['salinity'][tidx, cell_idx, :]
+        fig = plt.figure()
+        vert_levels = ds.dims['nVertLevels']
+        plt.plot(salinity, np.arange(vert_levels), '.-')
+        plt.xlabel('Salinity')
+        plt.ylabel('Vertical level')
+        fig.savefig('salinity_levels.png', bbox_inches='tight', dpi=200)
+        plt.close(fig)
+
     def _plot_ssh_validation(self, times, tidx=None, outFolder='.'):
         """
         Plot ssh as a function of along-channel distance for all times for
@@ -208,8 +234,9 @@ class Viz(Step):
         for i in range(naxes):
             ax = plt.subplot(naxes, 1, i + 1)
             ds = xr.open_dataset(ncFilename[i])
-            ds = ds.drop_vars(np.setdiff1d([j for j in ds.variables],
-                                           ['yCell', 'ssh']))
+            ds = ds.drop_vars(np.setdiff1d(
+                [j for j in ds.variables],
+                ['daysSinceStartOfSim', 'yCell', 'ssh']))
 
             ax.plot(xBed, yBed, '-k', lw=3)
             ax.set_xlim(0, drying_length)
@@ -224,7 +251,11 @@ class Viz(Step):
                 # Plot MPAS-O data
                 # factor of 1e- needed to account for annoying round-off issue
                 # to get right time slices
-                plottime = int((float(atime) / 0.2 + 1e-16) * 24.0)
+                mpastime = ds.daysSinceStartOfSim.values
+                simtime = pd.to_timedelta(mpastime)
+                s_day = 86400.
+                time = simtime.total_seconds()
+                plottime = np.argmin(np.abs(time / s_day - float(atime)))
                 ymean = ds.isel(Time=plottime).groupby('yCell').mean(
                     dim=xr.ALL_DIMS)
                 y = ymean.ssh.values
