@@ -245,6 +245,10 @@ class MoviePlotter(object):
         landIceMask = self.dsMesh.landIceMask.isel(Time=0) > 0
         self.oceanMask = self.dsMesh.maxLevelCell - 1 >= 0
         self.cavityMask = numpy.logical_and(self.oceanMask, landIceMask)
+        self.oceanMask = self._remove_boundary_edges_from_mask(
+            self.dsMesh, self.oceanMask)
+        self.cavityMask = self._remove_boundary_edges_from_mask(
+            self.dsMesh, self.cavityMask)
 
         self.oceanPatches = _compute_cell_patches(
             self.dsMesh, self.oceanMask)
@@ -795,10 +799,11 @@ class MoviePlotter(object):
 
         if oceanDomain:
             localPatches = copy.copy(self.oceanPatches)
-            localPatches.set_array(field[self.oceanMask])
+            mask = self.oceanMask
         else:
             localPatches = copy.copy(self.cavityPatches)
-            localPatches.set_array(field[self.cavityMask])
+            mask = self.cavityMask
+        localPatches.set_array(field[mask])
 
         if cmap is not None:
             localPatches.set_cmap(cmap)
@@ -826,6 +831,44 @@ class MoviePlotter(object):
         plt.tight_layout(pad=0.5)
         plt.savefig(outFileName)
         plt.close()
+
+    def _remove_boundary_edges_from_mask(self, ds, mask):
+        area_cell = ds.areaCell.values
+        mean_area_cell = numpy.mean(area_cell)
+        cells_on_edge = ds.cellsOnEdge.values - 1
+        vertices_on_edge = ds.verticesOnEdge.values - 1
+        x_cell = ds.xCell.values
+        y_cell = ds.yCell.values
+        boundary_vertex = ds.boundaryVertex.values
+        x_vertex = ds.xVertex.values
+        y_vertex = ds.yVertex.values
+        for edge_index in range(ds.sizes['nEdges']):
+            if edge_index >= numpy.shape(mask)[0]:
+                continue
+            if not mask[edge_index]:
+                continue
+            cell_indices = cells_on_edge[edge_index]
+            vertex_indices = vertices_on_edge[edge_index, :]
+            if any(boundary_vertex[vertex_indices]):
+                mask[edge_index] = 0
+                continue
+            vertices = numpy.zeros((4, 2))
+            vertices[0, 0] = x_vertex[vertex_indices[0]]
+            vertices[0, 1] = y_vertex[vertex_indices[0]]
+            vertices[1, 0] = x_cell[cell_indices[0]]
+            vertices[1, 1] = y_cell[cell_indices[0]]
+            vertices[2, 0] = x_vertex[vertex_indices[1]]
+            vertices[2, 1] = y_vertex[vertex_indices[1]]
+            vertices[3, 0] = x_cell[cell_indices[1]]
+            vertices[3, 1] = y_cell[cell_indices[1]]
+
+            # Remove edges that span the periodic boundaries
+            dx = max(vertices[:, 0]) - min(vertices[:, 0])
+            dy = max(vertices[:, 1]) - min(vertices[:, 1])
+            if dx * dy / 10 > mean_area_cell:
+                mask[edge_index] = 0
+
+        return mask
 
     def _plot_vert_field(self, inX, inZ, field, title, outFileName,
                          vmin=None, vmax=None, figsize=(9, 5), cmap=None,
