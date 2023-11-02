@@ -192,6 +192,68 @@ class Viz(Step):
         fig.savefig('salinity_levels.png', bbox_inches='tight', dpi=200)
         plt.close(fig)
 
+    def _plot_drying_factor(self, times, tidx=None, outFolder='.'):
+
+        fig, axs = plt.subplots(nrows=1, ncols=1, sharex=True)
+        ax = axs[0]
+        ds = xr.open_dataset('output.nc')
+        ds = ds.drop_vars(np.setdiff1d(
+            [j for j in ds.variables],
+            ['daysSinceStartOfSim', 'yCell',
+             'wettingVelocityBarotropicSubcycle',
+             'wettingVelocityBaroclinic']))
+
+        drying_length = self.config.getfloat('drying_slope', 'ly_analysis')
+        right_bottom_depth = self.config.getfloat('drying_slope',
+                                                  'right_bottom_depth')
+        ds_mesh = xr.open_dataset('init.nc')
+        mesh_ymean = ds_mesh.isel(Time=0).groupby('yCell').mean(
+            dim=xr.ALL_DIMS)
+        x_offset = np.max(mesh_ymean.yCell.values) - drying_length * 1000.
+        x = (mesh_ymean.yCell.values - x_offset) / 1000.0
+        ax.set_xlim(0, drying_length)
+        ax.set_ylim(-1, 1.1 * right_bottom_depth)
+        ax.invert_yaxis()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.label_outer()
+
+        mpastime = ds.daysSinceStartOfSim.values
+        simtime = pd.to_timedelta(mpastime)
+        s_day = 86400.
+        time = simtime.total_seconds()
+        locs = [7.2, 2.2, 0.2, 1.2, 4.2, 9.3]
+        for atime, ay in zip(times, locs):
+
+            # Plot MPAS-O data
+            # factor of 1e- needed to account for annoying round-off issue
+            # to get right time slices
+            plottime = np.argmin(np.abs(time / s_day - float(atime)))
+            ymean = ds.isel(Time=plottime).groupby('yCell').mean(
+                dim=xr.ALL_DIMS)
+            barotropic_factor = ymean.wettingVelocityBarotropicSubcycle.values
+            baroclinic_factor = ymean.wettingVelocityBaroclinic.values
+
+            ax.plot(x, barotropic_factor, '-k', label='barotropic')
+            ax.plot(x, baroclinic_factor, '-b', label='baroclinic')
+            plt.title(f'{atime:03f} days')
+        ax.legend(frameon=False, loc='lower left')
+
+        ds.close()
+
+        h, l0 = ax.get_legend_handles_labels()
+        ax.legend(h[:1], l0[:1], frameon=False,
+                  loc='lower left')
+
+        ax.set_ylabel('Wetting velocity factor')
+        ax.set_xlabel('Along channel distance (km)')
+
+        filename = f'{outFolder}/drying_factor'
+        if tidx is not None:
+            filename = f'{filename}_t{tidx:03d}'
+        fig.savefig(f'{filename}.png', dpi=200, format='png')
+        plt.close(fig)
+
     def _plot_ssh_validation(self, times, tidx=None, outFolder='.'):
         """
         Plot ssh as a function of along-channel distance for all times for
@@ -222,8 +284,8 @@ class Viz(Step):
         drying_length = self.config.getfloat('drying_slope', 'ly_analysis')
         right_bottom_depth = self.config.getfloat('drying_slope',
                                                   'right_bottom_depth')
-        drying_length = drying_length * 1e3
-        x_offset = np.max(mesh_ymean.yCell.values) - drying_length
+        drying_length = drying_length
+        x_offset = np.max(mesh_ymean.yCell.values) - drying_length * 1000.
         x = (mesh_ymean.yCell.values - x_offset) / 1000.0
 
         xBed = np.linspace(0, drying_length, 100)

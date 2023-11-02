@@ -38,6 +38,7 @@
     <var name="zMid"/>
     <var name="tidalInputMask"/>
     <var name="wettingVelocityFactor"/>
+    <var name="daysSinceStartOfSim"/>
 </stream>
 
 </streams>
