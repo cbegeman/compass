@@ -70,7 +70,8 @@ class Baroclinic(TestCase):
                                openmp_threads=1,
                                coord_type=coord_type,
                                forcing_type='linear',
-                               time_integrator=time_integrator)
+                               time_integrator=time_integrator,
+                               baroclinic=True)
         if method == 'ramp':
             forward_step.add_namelist_options(
                 {'config_zero_drying_velocity_ramp': ".true."})

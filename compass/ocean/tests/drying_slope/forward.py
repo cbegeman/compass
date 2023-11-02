@@ -12,7 +12,8 @@ class Forward(Step):
     def __init__(self, test_case, resolution, name='forward', subdir=None,
                  input_path='../initial_state', ntasks=1, min_tasks=None,
                  openmp_threads=1, time_integrator='rk4', damping_coeff=None,
-                 coord_type='sigma', forcing_type='monochromatic'):
+                 coord_type='sigma', forcing_type='monochromatic',
+                 baroclinic=False):
         """
         Create a forward step
 
@@ -66,6 +67,9 @@ class Forward(Step):
             # update the Rayleigh damping coeff to the requested value
             options = {'config_Rayleigh_damping_coeff': f'{damping_coeff}'}
             self.add_namelist_options(options)
+        if baroclinic:
+            self.add_namelist_file('compass.ocean.tests.drying_slope',
+                                   'namelist.baroclinic.forward')
 
         self.add_streams_file('compass.ocean.tests.drying_slope',
                               'streams.forward')
@@ -102,7 +106,7 @@ class Forward(Step):
         Run this step of the test case
         """
         dt = self.get_dt()
-        section = self.config['vertical_grid']
+        section = self.config['drying_slope']
         thin_film_thickness = section.getfloat('thin_film_thickness')
         options = {'config_dt': f"'{dt}'",
                    'config_drying_min_cell_height': f'{thin_film_thickness}',

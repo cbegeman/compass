@@ -1,0 +1,3 @@
+config_disable_tr_all_tend = .false.
+config_use_debugTracers = .true.
+config_use_activeTracers = .true.
