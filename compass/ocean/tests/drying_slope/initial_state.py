@@ -45,10 +45,10 @@ class InitialState(Step):
 
         # Fetch config options
         section = config['vertical_grid']
-        thin_film_thickness = section.getfloat('thin_film_thickness') + 1.0e-9
         vert_levels = section.getint('vert_levels')
 
         section = config['drying_slope']
+        thin_film_thickness = section.getfloat('thin_film_thickness') + 1.0e-9
         nx = section.getint('nx')
         domain_length = section.getfloat('ly') * 1e3
         drying_length = section.getfloat('ly_analysis') * 1e3
