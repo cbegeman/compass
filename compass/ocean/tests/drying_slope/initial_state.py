@@ -96,11 +96,11 @@ class InitialState(Step):
         ds = ds_mesh.copy()
         ds_forcing = ds_mesh.copy()
 
-        y_min = ds_mesh.yCell.min()
-        y_max = ds_mesh.yCell.max()
-        dc_edge_min = ds_mesh.dcEdge.min()
-
         y_cell = ds.yCell
+        y_min = y_cell.min()
+        y_max = y_cell.max()
+        dc_edge_min = ds.dcEdge.min()
+
         bottom_depth = (right_bottom_depth - (y_max - y_cell) / drying_length *
                         (right_bottom_depth - left_bottom_depth))
         ds['bottomDepth'] = bottom_depth
@@ -116,6 +116,7 @@ class InitialState(Step):
         y_plug_boundary = y_min + plug_width
         temperature = xr.where(y_cell < y_plug_boundary,
                                plug_temperature, background_temperature)
+        temperature, _ = xr.broadcast(temperature, ds.refBottomDepth)
         ds['temperature'] = temperature.expand_dims(dim='Time', axis=0)
         ds['tracer1'] = xr.where(y_cell < y_plug_boundary, 1.0, 0.0)
         if self.baroclinic:
@@ -126,6 +127,7 @@ class InitialState(Step):
                         (right_salinity - left_salinity))
         else:
             salinity = background_salinity * xr.ones_like(y_cell)
+        salinity, _ = xr.broadcast(salinity, ds.refBottomDepth)
         ds['salinity'] = salinity.expand_dims(dim='Time', axis=0)
 
         normalVelocity = xr.zeros_like(ds_mesh.xEdge)
