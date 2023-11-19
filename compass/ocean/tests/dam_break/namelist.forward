@@ -1,4 +1,3 @@
-config_time_integrator='RK4'
 config_run_duration='0000_00:00:10'
 config_implicit_constant_bottom_drag_coeff=2.5e-3
 config_use_mom_del2=.true.
@@ -11,6 +10,5 @@ config_prevent_drying=.true.
 config_zero_drying_velocity=.true.
 config_drying_min_cell_height=1e-6
 config_thickness_flux_type='upwind'
-config_vert_coord_movement='impermeable_interfaces'
 config_use_debugTracers=.false.
 config_disable_tr_all_tend=.true.

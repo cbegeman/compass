@@ -1,3 +1,5 @@
+import time
+
 from compass.model import run_model
 from compass.step import Step
 
@@ -7,9 +9,9 @@ class Forward(Step):
     A step for performing forward MPAS-Ocean runs as part of dam break
     test cases.
     """
-    def __init__(self, test_case, resolution, use_lts,
-                 name='forward', subdir=None,
-                 ntasks=1, min_tasks=None, openmp_threads=1):
+    def __init__(self, test_case, resolution, name='forward', subdir=None,
+                 ntasks=1, min_tasks=None, openmp_threads=1,
+                 time_integrator='RK4', use_lts=False):
         """
         Create a new test case
 
@@ -42,6 +44,8 @@ class Forward(Step):
         openmp_threads : int, optional
             the number of threads the step will use
 
+        time_integrator : str, optional
+            the time integration scheme.  The default is ``name``
         """
         if min_tasks is None:
             min_tasks = ntasks
@@ -51,6 +55,7 @@ class Forward(Step):
                          openmp_threads=openmp_threads)
 
         self.resolution = resolution
+        self.time_integrator = time_integrator
 
         self.add_namelist_file('compass.ocean.tests.dam_break',
                                'namelist.forward')
@@ -96,11 +101,35 @@ class Forward(Step):
         Run this step of the test case
         """
 
-        resolution = self.resolution
-        if resolution == 0.04:
-            self.update_namelist_at_runtime({'config_dt':
-                                             "'0000_00:00:00.001'"})
-        elif resolution == 0.12:
-            self.update_namelist_at_runtime({'config_dt':
-                                             "'0000_00:00:00.003'"})
+        dt, dt_btr = self.get_dt()
+        if self.time_integrator == 'split_explicit':
+            self.update_namelist_at_runtime({'config_dt': f"{dt}"})
+        else:
+            self.update_namelist_at_runtime({'config_dt': f"{dt_btr}"})
         run_model(self)
+
+    def get_dt(self):
+        """
+        Get the time step
+
+        Returns
+        -------
+        dt : str
+            the time step in HH:MM:SS
+        """
+        config = self.config
+        # dt is proportional to resolution
+        dt_per_m = config.getfloat('dam_break', 'dt_per_m')
+        dt_btr_per_m = config.getfloat('dam_break', 'dt_btr_per_m')
+
+        dt_float = dt_per_m * self.resolution
+        dt_btr_float = dt_btr_per_m * self.resolution
+        # https://stackoverflow.com/a/1384565/7728169
+        dt = time.strftime('%H:%M:%S', time.gmtime(dt_float))
+        dt_btr = time.strftime('%H:%M:%S', time.gmtime(dt_btr_float))
+        if dt_float < 1.:
+            dt = f'{dt[:-1]}{dt_float:0.3g}'
+        if dt_btr_float < 1.:
+            dt_btr = f'{dt_btr[:-1]}{dt_btr_float:0.3g}'
+
+        return dt, dt_btr
