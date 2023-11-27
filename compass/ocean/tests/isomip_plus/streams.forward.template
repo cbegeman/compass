@@ -42,6 +42,7 @@
     <var name="density"/>
     <var name="potentialDensity"/>
     <var name="ssh"/>
+    <var name="zMid"/>
     <var name="pressure"/>
     <var name="normalVelocity"/>
     <var name="velocityX"/>
