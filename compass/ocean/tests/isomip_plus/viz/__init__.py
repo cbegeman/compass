@@ -74,9 +74,31 @@ class Viz(Step):
         streamfunction_dir = '../streamfunction'
         out_dir = '.'
 
-        dsMesh = xarray.open_dataset(f'{sim_dir}/init.nc')
-        dsOut = xarray.open_dataset(f'{sim_dir}/output.nc')
+        dsMesh = xarray.open_dataset('../initial_state/initial_state.nc')
+        dsOut = xarray.open_dataset('../ssh_adjustment/adjusting_init.nc')
+        dsSsh = xarray.open_dataset('../ssh_adjustment/output_ssh.nc')
+        dsSsh = dsSsh.isel(Time=[-1])
+        plotter = MoviePlotter(inFolder=sim_dir,
+                               streamfunctionFolder=streamfunction_dir,
+                               outFolder=f'{out_dir}/plots',
+                               expt=expt, sectionY=section_y,
+                               dsMesh=dsMesh, ds=dsOut,
+                               showProgress=show_progress)
+        delssh = dsSsh.ssh - dsMesh.ssh
+        plotter.plot_horiz_series(dsSsh.ssh, 'ssh', 'ssh', True,
+                                  cmap='cmo.curl', vmin=-700, vmax=0)
+        plotter.plot_horiz_series(delssh, 'delssh', 'delssh', True,
+                                  cmap='cmo.curl', vmin=-25, vmax=25)
+        wct = dsSsh.ssh + dsMesh.bottomDepth
+        plotter.plot_horiz_series(wct, 'H', 'H', True,
+                                  vmin=1e-1,
+                                  vmax=700, cmap_set_under='r',
+                                  cmap_scale='log')
+        delwct = wct - (dsMesh.ssh + dsMesh.bottomDepth)
+        plotter.plot_horiz_series(delwct, 'delH', 'delH', True,
+                                  cmap='cmo.curl', vmin=-25, vmax=25)
 
+        dsOut = xarray.open_dataset(f'{sim_dir}/output.nc')
         plotter = MoviePlotter(inFolder=sim_dir,
                                streamfunctionFolder=streamfunction_dir,
                                outFolder=f'{out_dir}/plots',
@@ -111,10 +133,10 @@ class Viz(Step):
         wct_thin = wct[:, idx_thin]
         wct_mean = wct_thin.mean(dim='nCells').values
         time = dsOut.daysSinceStartOfSim.values
-        fig = plt.figure()
+        plt.figure()
         plt.plot(time, wct_mean, '.')
-        fig.set_xlabel('Time (days)')
-        fig.set_ylabel('Mean thickness of thin film (m)')
+        plt.xlabel('Time (days)')
+        plt.ylabel('Mean thickness of thin film (m)')
         plt.savefig('wct_thin_t.png')
         plt.close()
 
