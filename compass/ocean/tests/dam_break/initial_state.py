@@ -53,9 +53,11 @@ class InitialState(Step):
         nx = section.getint('nx')
         ny = section.getint('ny')
         dc = section.getfloat('dc')
+        thin_film_thickness = section.getfloat('thin_film_thickness')
 
         self.update_namelist_at_runtime(
-            {'config_dam_break_dc': f'{dc}'})
+            {'config_dam_break_dc': f'{dc}',
+             'config_drying_min_cell_height': f'{thin_film_thickness}'})
 
         logger.info(' * Make planar hex mesh')
         dsMesh = make_planar_hex_mesh(nx=nx, ny=ny, dc=dc, nonperiodic_x=True,

@@ -59,6 +59,10 @@ class Forward(Step):
 
         self.add_namelist_file('compass.ocean.tests.dam_break',
                                'namelist.forward')
+        if time_integrator == 'RK4':
+            self.add_namelist_options({'config_disable_tr_all_tend': '.true.'})
+        self.add_streams_file('compass.ocean.tests.dam_break',
+                              'streams.forward')
 
         if use_lts:
             self.add_namelist_options(
@@ -101,11 +105,21 @@ class Forward(Step):
         Run this step of the test case
         """
 
+        options = dict()
+        thin_film_thickness = self.config.getfloat('dam_break',
+                                                   'thin_film_thickness')
+        options['config_drying_min_cell_height'] = f"{thin_film_thickness}"
+        options['config_zero_drying_velocity_ramp_hmin'] = \
+            f"{thin_film_thickness}"
+        options['config_zero_drying_velocity_ramp_hmax'] = \
+            f"{10. * thin_film_thickness}"
         dt, dt_btr = self.get_dt()
         if self.time_integrator == 'split_explicit':
-            self.update_namelist_at_runtime({'config_dt': f"{dt}"})
+            options['config_dt'] = f"'{dt}'"
+            options['config_btr_dt'] = f"'{dt_btr}'"
         else:
-            self.update_namelist_at_runtime({'config_dt': f"{dt_btr}"})
+            options['config_dt'] = f"'{dt_btr}'"
+        self.update_namelist_at_runtime(options=options)
         run_model(self)
 
     def get_dt(self):
