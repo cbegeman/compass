@@ -23,7 +23,7 @@ class Default(TestCase):
     """
 
     def __init__(self, test_group, resolution, coord_type,
-                 tidal_forcing=False):
+                 tidal_forcing=False, land_ice_pressure='constant'):
         """
         Create the test case
 
@@ -39,6 +39,10 @@ class Default(TestCase):
             The type of vertical coordinate (``z-star``, ``z-level``, etc.)
         """
         name = 'default'
+        if land_ice_pressure == 'increasing':
+            name = 'drying'
+        elif land_ice_pressure == 'decreasing':
+            name = 'wetting'
         if tidal_forcing:
             name = 'tidal_forcing'
             with_frazil = False
@@ -54,8 +58,10 @@ class Default(TestCase):
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
 
+        time_varying_forcing = land_ice_pressure != 'constant'
         self.add_step(
-            InitialState(test_case=self, resolution=resolution))
+            InitialState(test_case=self, resolution=resolution,
+                         time_varying_forcing=time_varying_forcing))
         self.add_step(
             SshAdjustment(test_case=self, coord_type=coord_type,
                           resolution=resolution, ntasks=4, openmp_threads=1,
@@ -63,7 +69,8 @@ class Default(TestCase):
         self.add_step(
             Forward(test_case=self, ntasks=4, openmp_threads=1,
                     coord_type=coord_type, resolution=resolution,
-                    with_frazil=with_frazil, tidal_forcing=tidal_forcing))
+                    with_frazil=with_frazil, tidal_forcing=tidal_forcing,
+                    time_varying_forcing=time_varying_forcing))
         self.add_step(Viz(test_case=self), run_by_default=False)
 
     def configure(self):

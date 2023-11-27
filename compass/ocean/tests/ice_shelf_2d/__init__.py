@@ -23,6 +23,14 @@ class IceShelf2d(TestGroup):
                     Default(test_group=self, resolution=resolution,
                             coord_type=coord_type, tidal_forcing=True))
                 self.add_test_case(
+                    Default(test_group=self, resolution=resolution,
+                            coord_type=coord_type,
+                            land_ice_pressure='increasing'))
+                self.add_test_case(
+                    Default(test_group=self, resolution=resolution,
+                            coord_type=coord_type,
+                            land_ice_pressure='decreasing'))
+                self.add_test_case(
                     RestartTest(test_group=self, resolution=resolution,
                                 coord_type=coord_type))
 
