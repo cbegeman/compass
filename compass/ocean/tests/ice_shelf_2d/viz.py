@@ -37,64 +37,23 @@ class Viz(Step):
         """
 
         ds = xr.open_dataset('initial_state.nc')
+        self.plot_vertical_grid(ds, output_filename='vert_grid_init.png')
+
         dsOut = xr.open_dataset('output.nc')
+        dsOut = dsOut.isel(Time=[0, -1])
         dsAdj = xr.open_dataset('output_ssh.nc')
         plotter = MoviePlotter(inFolder='../forward',
-                               streamfunctionFolder='',
+                               streamfunctionFolder='./plots',
                                outFolder='./plots',
                                expt='', sectionY=20. * 5.0e3,
                                dsMesh=ds, ds=dsOut,
                                showProgress=False)
-
-        if 'Time' in ds.dims:
-            ds = ds.isel(Time=0)
-
-        ds = ds.groupby('yCell').mean(dim='nCells')
-
-        nCells = ds.sizes['yCell']
-        nVertLevels = ds.sizes['nVertLevels']
-
-        zIndex = xr.DataArray(data=np.arange(nVertLevels),
-                              dims='nVertLevels')
-
-        minLevelCell = ds.minLevelCell - 1
-        maxLevelCell = ds.maxLevelCell - 1
-
-        cellMask = np.logical_and(zIndex >= minLevelCell,
-                                  zIndex <= maxLevelCell)
-
-        zIndex = xr.DataArray(data=np.arange(nVertLevels + 1),
-                              dims='nVertLevelsP1')
-
-        interfaceMask = np.logical_and(zIndex >= minLevelCell,
-                                       zIndex <= maxLevelCell + 1)
-
-        zMid = ds.zMid.where(cellMask)
-
-        zInterface = np.zeros((nCells, nVertLevels + 1))
-        zInterface[:, 0] = ds.ssh.values
-        for zIndex in range(nVertLevels):
-            thickness = ds.layerThickness.isel(nVertLevels=zIndex)
-            thickness = thickness.fillna(0.)
-            zInterface[:, zIndex + 1] = \
-                zInterface[:, zIndex] - thickness.values
-
-        zInterface = xr.DataArray(data=zInterface,
-                                  dims=('yCell', 'nVertLevelsP1'))
-        zInterface = zInterface.where(interfaceMask)
-
-        y = ds.yCell.values / 1.e3
-        plt.figure(figsize=[12, 6], dpi=100)
-        plt.plot(y, zMid.values, 'b', label='zMid')
-        plt.plot(y, zInterface.values, 'k', label='zTop')
-        plt.plot(y, ds.ssh.values, '--g', label='SSH')
-        plt.plot(y, -ds.bottomDepth.values, '--r', label='zBed')
-        plt.xlabel('Distance (km)')
-        plt.ylabel('Depth (m)')
-        plt.savefig('vert_grid.png', dpi=200)
-        plt.close()
-
-        ds = xr.open_dataset('initial_state.nc')
+        plotter.plot_layer_interfaces()
+        # plotter.plot_melt_rates()
+        # plotter.plot_ice_shelf_boundary_variables()
+        # plotter.plot_temperature()
+        # plotter.plot_salinity()
+        # plotter.plot_potential_density()
 
         # Plot the time series of max velocity
         plt.figure(figsize=[12, 6], dpi=100)
@@ -165,3 +124,52 @@ class Viz(Step):
                                   vmin=-1. * max(abs(s_vmin), abs(s_vmax)),
                                   vmax=max(abs(s_vmin), abs(s_vmax)),
                                   figsize=figsize)
+
+    def plot_vertical_grid(self, ds, tidx=0, output_filename='vert_grid.png'):
+        if 'Time' in ds.dims:
+            ds = ds.isel(Time=tidx)
+
+        ds = ds.groupby('yCell').mean(dim='nCells')
+
+        nCells = ds.sizes['yCell']
+        nVertLevels = ds.sizes['nVertLevels']
+
+        zIndex = xr.DataArray(data=np.arange(nVertLevels),
+                              dims='nVertLevels')
+
+        minLevelCell = ds.minLevelCell - 1
+        maxLevelCell = ds.maxLevelCell - 1
+
+        cellMask = np.logical_and(zIndex >= minLevelCell,
+                                  zIndex <= maxLevelCell)
+
+        zIndex = xr.DataArray(data=np.arange(nVertLevels + 1),
+                              dims='nVertLevelsP1')
+
+        interfaceMask = np.logical_and(zIndex >= minLevelCell,
+                                       zIndex <= maxLevelCell + 1)
+
+        zMid = ds.zMid.where(cellMask)
+
+        zInterface = np.zeros((nCells, nVertLevels + 1))
+        zInterface[:, 0] = ds.ssh.values
+        for zIndex in range(nVertLevels):
+            thickness = ds.layerThickness.isel(nVertLevels=zIndex)
+            thickness = thickness.fillna(0.)
+            zInterface[:, zIndex + 1] = \
+                zInterface[:, zIndex] - thickness.values
+
+        zInterface = xr.DataArray(data=zInterface,
+                                  dims=('yCell', 'nVertLevelsP1'))
+        zInterface = zInterface.where(interfaceMask)
+
+        y = ds.yCell.values / 1.e3
+        plt.figure(figsize=[12, 6], dpi=100)
+        plt.plot(y, zMid.values, 'b', label='zMid')
+        plt.plot(y, zInterface.values, 'k', label='zTop')
+        plt.plot(y, ds.ssh.values, '--g', label='SSH')
+        plt.plot(y, -ds.bottomDepth.values, '--r', label='zBed')
+        plt.xlabel('Distance (km)')
+        plt.ylabel('Depth (m)')
+        plt.savefig(output_filename, dpi=200)
+        plt.close()
