@@ -20,7 +20,8 @@ class Forward(Step):
     """
     def __init__(self, test_case, resolution, coord_type, name='forward',
                  subdir=None, ntasks=1, min_tasks=None, openmp_threads=1,
-                 with_frazil=True, tidal_forcing=False):
+                 with_frazil=True, tidal_forcing=False,
+                 time_varying_forcing=False):
         """
         Create a new test case
 
@@ -81,6 +82,14 @@ class Forward(Step):
             self.add_namelist_options(options)
             self.add_streams_file('compass.ocean.streams', 'streams.frazil')
             self.add_output_file('frazil.nc')
+        if time_varying_forcing:
+            self.add_namelist_file('compass.ocean.tests.ice_shelf_2d',
+                                   'namelist.time_varying_forcing')
+            self.add_streams_file('compass.ocean.tests.ice_shelf_2d',
+                                  'streams.time_varying_forcing')
+            self.add_input_file(
+                filename='land_ice_forcing.nc',
+                target='../initial_state/land_ice_forcing.nc')
 
         self.add_streams_file('compass.ocean.streams',
                               'streams.land_ice_fluxes')
