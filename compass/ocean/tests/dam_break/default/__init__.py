@@ -68,7 +68,8 @@ class Default(TestCase):
         forward_step = Forward(test_case=self, resolution=resolution,
                                use_lts=use_lts,
                                ntasks=ntasks, min_tasks=min_tasks,
-                               openmp_threads=1)
+                               openmp_threads=1,
+                               time_integrator=time_integrator)
         forward_step.add_namelist_options(
             {'config_time_integrator': f"'{time_integrator}'"})
         if time_integrator == 'RK4':
