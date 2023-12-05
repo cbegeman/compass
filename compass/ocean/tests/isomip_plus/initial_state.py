@@ -102,6 +102,10 @@ class InitialState(Step):
         min_land_ice_fraction = section.getfloat('min_land_ice_fraction')
         min_ocean_fraction = section.getfloat('min_ocean_fraction')
         ice_density = section.getfloat('ice_density')
+        use_full_land_ice_pressure = section.getboolean(
+            'use_full_land_ice_pressure')
+        max_pressure_above_floatation = section.getfloat(
+            'max_pressure_above_floatation')
 
         ds_geom = xr.open_dataset('input_geometry_processed.nc')
         ds_mesh = xr.open_dataset('culled_mesh.nc')
@@ -132,19 +136,23 @@ class InitialState(Step):
 
         ds['landIceFraction'] = xr.where(mask, ds.landIceFraction, 0.)
 
-        if thin_film_present:
+        land_ice_pressure_floatation = compute_land_ice_pressure_from_draft(
+            land_ice_draft=ds.ssh, modify_mask=ds.ssh < 0.)
+        if use_full_land_ice_pressure:
             land_ice_thickness = ds.landIceThickness
             land_ice_pressure = compute_land_ice_pressure_from_thickness(
                 land_ice_thickness=land_ice_thickness, modify_mask=ds.ssh < 0.,
                 land_ice_density=ice_density)
+            land_ice_pressure = np.minimum(
+                land_ice_pressure,
+                land_ice_pressure_floatation + max_pressure_above_floatation)
             land_ice_draft = compute_land_ice_draft_from_pressure(
                 land_ice_pressure=land_ice_pressure,
                 modify_mask=ds.bottomDepth > 0.)
             ds['ssh'] = np.maximum(land_ice_draft, -ds.bottomDepth)
         else:
             land_ice_draft = ds.ssh
-            land_ice_pressure = compute_land_ice_pressure_from_draft(
-                land_ice_draft=land_ice_draft, modify_mask=land_ice_draft < 0.)
+            land_ice_pressure = land_ice_pressure_floatation
 
         ds['landIcePressure'] = land_ice_pressure
         ds['landIceDraft'] = land_ice_draft
