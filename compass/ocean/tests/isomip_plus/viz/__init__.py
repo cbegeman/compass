@@ -72,8 +72,8 @@ class Viz(Step):
         if not os.path.exists(f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc'):  # noqa: E501
             sim_dir = '../performance'
         streamfunction_dir = '../streamfunction'
-        out_dir = '.'
 
+        out_dir = '../ssh_adjustment'
         dsMesh = xarray.open_dataset('../initial_state/initial_state.nc')
         dsOut = xarray.open_dataset('../ssh_adjustment/adjusting_init.nc')
         dsSsh = xarray.open_dataset('../ssh_adjustment/output_ssh.nc')
@@ -98,6 +98,7 @@ class Viz(Step):
         plotter.plot_horiz_series(delwct, 'delH', 'delH', True,
                                   cmap='cmo.curl', vmin=-25, vmax=25)
 
+        out_dir = '{sim_dir}'
         dsOut = xarray.open_dataset(f'{sim_dir}/output.nc')
         plotter = MoviePlotter(inFolder=sim_dir,
                                streamfunctionFolder=streamfunction_dir,
@@ -145,9 +146,10 @@ class Viz(Step):
                                   vmax=700, cmap_set_under='r',
                                   cmap_scale='log')
 
+        sim_dir = '../simulation'
         if os.path.exists(f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc'):
             ds = xarray.open_mfdataset(
-                '{}/timeSeriesStatsMonthly*.nc'.format(sim_dir),
+                f'{sim_dir}/timeSeriesStatsMonthly*.nc',
                 concat_dim='Time', combine='nested')
 
             if plot_haney:
