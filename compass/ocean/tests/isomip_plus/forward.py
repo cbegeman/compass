@@ -145,6 +145,9 @@ class Forward(Step):
         config = self.config
         resolution = self.resolution
 
+        time_integrator = config.get('isomip_plus', 'time_integrator')
+        min_layer_thickness = config.getfloat('isomip_plus',
+                                              'min_layer_thickness')
         dt_per_km = config.getfloat('isomip_plus', 'dt_per_km')
         dt_btr_per_km = config.getfloat('isomip_plus', 'dt_btr_per_km')
 
@@ -157,8 +160,12 @@ class Forward(Step):
         if btr_dt_float < 1.:
             btr_dt = f'{btr_dt}.{round(btr_dt_float*100)}'
 
-        options = dict(config_dt=f"'{dt}'",
-                       config_btr_dt=f"'{btr_dt}'")
+        options = dict(
+            config_time_integrator=f"'{time_integrator}'",
+            config_dt=f"'{dt}'",
+            config_btr_dt=f"'{btr_dt}'",
+            config_drying_min_cell_height=f"{min_layer_thickness}",
+            config_zero_drying_velocity_ramp_hmin=f"{min_layer_thickness}")
         self.update_namelist_at_runtime(options)
 
         run_model(self)

@@ -1,7 +1,9 @@
-config_time_integrator='RK4'
-config_dt='00:00:10'
 config_use_wetting_drying=.true.
 config_prevent_drying=.true.
-config_drying_min_cell_height=1.0e-3
 config_zero_drying_velocity = .true.
 config_thickness_flux_type='upwind'
+config_use_thin_film_viscosity = .true.
+config_thin_film_viscosity_constant = 1e2
+config_zero_drying_velocity_ramp=.true.
+config_zero_drying_velocity_ramp_hmax=50.0
+config_zero_drying_velocity_ramp_factor=5.0
