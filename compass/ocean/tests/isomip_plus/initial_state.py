@@ -267,6 +267,23 @@ class InitialState(Step):
         ds['totalColThickness'].values = \
             ds['layerThickness'].sum(dim='nVertLevels')
         tol = 1e-10
+        if self.time_varying_forcing:
+            ds_forcing = xr.open_dataset('land_ice_forcing.nc')
+            plotter.plot_horiz_series(ds.bottomDepth,
+                                      'bottomDepth', 'bottomDepth', True)
+            plotter.plot_horiz_series(ds_forcing.landIceDraftForcing,
+                                      'draft_forcing', 'draft_forcing', True)
+            plotter.plot_horiz_series(
+                ds_forcing.landIceDraftForcing.isel(Time=[-1]) +
+                ds.bottomDepth,
+                'H_forcing', 'H_forcing', True,
+                vmin=min_column_thickness + tol, vmax=700,
+                cmap_set_under='r', cmap_scale='log')
+            plotter.plot_horiz_series(
+                ds_forcing.landIcePressureForcing.isel(Time=[-1]),
+                'landIcePressureForcing', 'landIcePressureForcing',
+                True, vmin=1e5, vmax=1e7, cmap_scale='log')
+
         plotter.plot_horiz_series(ds.landIceMask,
                                   'landIceMask', 'landIceMask',
                                   True)
@@ -401,6 +418,7 @@ class InitialState(Step):
         """
 
         config = self.config
+        section = config['isomip_plus']
         dates = config.get('isomip_plus_forcing', 'dates')
         dates = [date.ljust(64) for date in dates.replace(',', ' ').split()]
         scales = config.get('isomip_plus_forcing', 'scales')
@@ -430,13 +448,41 @@ class InitialState(Step):
             land_ice_draft = ds_init.landIceDraft
             land_ice_pressure = ds_init.landIcePressure
 
+        min_column_thickness = section.getfloat('min_column_thickness')
+        # max_pressure_above_floatation = section.getfloat(
+        #     'max_pressure_above_floatation')
         for scale in scales:
-            landIceDraft.append(scale * land_ice_draft)
-            landIcePressure.append(scale * land_ice_pressure)
+            new_land_ice_draft = scale * land_ice_draft
+            new_land_ice_pressure = scale * land_ice_pressure
+            # new_land_ice_thickness = scale * land_ice_thickness
+            # new_land_ice_pressure = compute_land_ice_pressure_from_thickness(
+            #     land_ice_thickness=new_land_ice_thickness,
+            #     modify_mask=ds_init.ssh.isel(Time=0) < 0.,
+            #     land_ice_density=ice_density)
+            # new_land_ice_draft = compute_land_ice_draft_from_pressure(
+            #     land_ice_pressure=new_land_ice_pressure,
+            #     modify_mask=ds_init.bottomDepth > 0.)
+            # new_land_ice_floating_fraction = (
+            #     new_land_ice_draft > -ds_init.bottomDepth).astype(float)
+            new_land_ice_floating_fraction = ds_init.landIceFloatingFraction
+            new_land_ice_floating_fraction = xr.where(
+                new_land_ice_draft <
+                (-ds_init.bottomDepth + min_column_thickness),
+                0., new_land_ice_floating_fraction)
+            new_land_ice_draft = np.maximum(
+                new_land_ice_draft,
+                -ds_init.bottomDepth + min_column_thickness)
+            # land_ice_pressure_floatation = \
+            #     compute_land_ice_pressure_from_draft(
+            #     land_ice_draft=new_land_ice_draft,
+            #     modify_mask=ds_init.ssh.isel(Time=0) < 0.)
+            # new_land_ice_pressure = np.minimum(
+            #     new_land_ice_pressure,
+            #     land_ice_pressure_floatation + max_pressure_above_floatation)
+            landIceDraft.append(new_land_ice_draft)
+            landIcePressure.append(new_land_ice_pressure)
             landIceFraction.append(ds_init.landIceFraction)
-            # Since floating fraction does not change, none of the thin film
-            # cases allow for the area undergoing melting to change
-            landIceFloatingFraction.append(ds_init.landIceFloatingFraction)
+            landIceFloatingFraction.append(new_land_ice_floating_fraction)
 
         ds_out['landIceDraftForcing'] = xr.concat(landIceDraft, 'Time')
         ds_out.landIceDraftForcing.attrs['units'] = 'm'
