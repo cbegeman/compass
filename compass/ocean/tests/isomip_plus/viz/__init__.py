@@ -2,7 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import xarray
+import xarray as xr
 from mpas_tools.io import write_netcdf
 
 from compass.ocean.haney import compute_haney_number
@@ -69,14 +69,16 @@ class Viz(Step):
             sim_dir = '../performance'
         else:
             sim_dir = '../simulation'
-        if not os.path.exists(f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc'):  # noqa: E501
+        if not os.path.exists(
+                f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc') and \
+                not os.path.exists(f'{sim_dir}/output.nc'):
             sim_dir = '../performance'
         streamfunction_dir = '../streamfunction'
 
         out_dir = '../ssh_adjustment'
-        dsMesh = xarray.open_dataset('../initial_state/initial_state.nc')
-        dsOut = xarray.open_dataset('../ssh_adjustment/adjusting_init.nc')
-        dsSsh = xarray.open_dataset('../ssh_adjustment/output_ssh.nc')
+        dsMesh = xr.open_dataset('../initial_state/initial_state.nc')
+        dsOut = xr.open_dataset('../ssh_adjustment/adjusting_init.nc')
+        dsSsh = xr.open_dataset('../ssh_adjustment/output_ssh.nc')
         dsSsh = dsSsh.isel(Time=[-1])
         plotter = MoviePlotter(inFolder=sim_dir,
                                streamfunctionFolder=streamfunction_dir,
@@ -98,8 +100,8 @@ class Viz(Step):
         plotter.plot_horiz_series(delwct, 'delH', 'delH', True,
                                   cmap='cmo.curl', vmin=-25, vmax=25)
 
-        out_dir = '{sim_dir}'
-        dsOut = xarray.open_dataset(f'{sim_dir}/output.nc')
+        out_dir = sim_dir
+        dsOut = xr.open_dataset(f'{sim_dir}/output.nc')
         plotter = MoviePlotter(inFolder=sim_dir,
                                streamfunctionFolder=streamfunction_dir,
                                outFolder=f'{out_dir}/plots',
@@ -122,6 +124,26 @@ class Viz(Step):
                                   True, vmin=min_column_thickness + 1e-10,
                                   vmax=700, cmap_set_under='r',
                                   cmap_scale='log')
+        plotter.plot_temperature(prefix='')
+        plotter.plot_salinity(prefix='')
+        speed = np.sqrt(np.square(dsOut.velocityX.values) +
+                        np.square(dsOut.velocityY.values))
+        plotter.plot_3d_field_top_bot_section(dsOut.velocityX,
+                                              nameInTitle='u',
+                                              prefix='u', units='m/s',
+                                              vmin=-0.1, vmax=0.1,
+                                              cmap='cmo.balance')
+        plotter.plot_3d_field_top_bot_section(dsOut.velocityY,
+                                              nameInTitle='v',
+                                              prefix='v', units='m/s',
+                                              vmin=-0.1, vmax=0.1,
+                                              cmap='cmo.balance')
+        da = xr.DataArray(data=speed, dims=dsOut.velocityX.dims)
+        plotter.plot_3d_field_top_bot_section(da,
+                                              nameInTitle='speed',
+                                              prefix='speed', units='m/s',
+                                              vmin=0, vmax=0.02,
+                                              cmap='cmo.speed')
 
         if 'tidal' in expt:
             delssh = dsOut.ssh - dsOut.ssh[0, :]
@@ -147,11 +169,11 @@ class Viz(Step):
                                   cmap_scale='log')
 
         sim_dir = '../simulation'
+        out_dir = '.'
         if os.path.exists(f'{sim_dir}/timeSeriesStatsMonthly.0001-01-01.nc'):
-            ds = xarray.open_mfdataset(
+            ds = xr.open_mfdataset(
                 f'{sim_dir}/timeSeriesStatsMonthly*.nc',
                 concat_dim='Time', combine='nested')
-
             if plot_haney:
                 _compute_and_write_haney_number(dsMesh, ds, out_dir,
                                                 showProgress=show_progress)
@@ -200,7 +222,7 @@ def file_complete(ds, fileName):
     """
     complete = False
     if os.path.exists(fileName):
-        with xarray.open_dataset(fileName) as dsCompare:
+        with xr.open_dataset(fileName) as dsCompare:
             if ds.sizes['Time'] == dsCompare.sizes['Time']:
                 complete = True
 
@@ -219,7 +241,7 @@ def _compute_and_write_haney_number(dsMesh, ds, folder, showProgress=False):
     haneyEdge, haneyCell = compute_haney_number(
         dsMesh, ds.timeMonthly_avg_layerThickness, ds.timeMonthly_avg_ssh,
         showProgress)
-    dsHaney = xarray.Dataset()
+    dsHaney = xr.Dataset()
     dsHaney['xtime_startMonthly'] = ds.xtime_startMonthly
     dsHaney['xtime_endMonthly'] = ds.xtime_endMonthly
     dsHaney['haneyEdge'] = haneyEdge

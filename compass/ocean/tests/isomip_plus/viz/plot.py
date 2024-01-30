@@ -407,26 +407,26 @@ class MoviePlotter(object):
                                oceanDomain=True, units='m/s',
                                vmin=0, vmax=0.05, cmap='cmo.speed')
 
-    def plot_temperature(self):
+    def plot_temperature(self, prefix='timeMonthly_avg_activeTracers_'):
         """
         Plot a series of images of temperature at the sea surface or
         ice-ocean interface, sea floor and in an x-z section
         """
 
-        da = self.ds.timeMonthly_avg_activeTracers_temperature
+        da = self.ds[f'{prefix}temperature']
         self.plot_3d_field_top_bot_section(da,
                                            nameInTitle='temperature',
                                            prefix='Temp', units='deg C',
                                            vmin=-2.5, vmax=1.0,
                                            cmap='cmo.thermal')
 
-    def plot_salinity(self):
+    def plot_salinity(self, prefix='timeMonthly_avg_activeTracers_'):
         """
         Plot a series of images of salinity at the sea surface or
         ice-ocean interface, sea floor and in an x-z section
         """
 
-        da = self.ds.timeMonthly_avg_activeTracers_salinity
+        da = self.ds[f'{prefix}salinity']
         self.plot_3d_field_top_bot_section(da,
                                            nameInTitle='salinity',
                                            prefix='Salinity', units='PSU',
@@ -854,7 +854,8 @@ class MoviePlotter(object):
             plt.fill_between(1e-3 * X[0, :], self.zBotSection, y2=-750,
                              facecolor='grey', zorder=1)
             for z_index in range(1, X.shape[0]):
-                plt.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k', zorder=4)
+                plt.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k', zorder=4,
+                         linewidth=0.1)
         plt.pcolormesh(1e-3 * inX, inZ, field, vmin=vmin, vmax=vmax, cmap=cmap,
                        zorder=3)
         plt.colorbar()
