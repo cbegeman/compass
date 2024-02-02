@@ -52,6 +52,8 @@ class Forward(Step):
 
         res_name = f'{resolution}km'
         self.add_namelist_file('compass.ocean.tests.parabolic_bowl',
+                               f'namelist.{res_name}.forward')
+        self.add_namelist_file('compass.ocean.tests.parabolic_bowl',
                                f'namelist.{coord_type}.forward')
 
         if ramp_type == 'ramp':
@@ -99,8 +101,8 @@ class Forward(Step):
         """
         Set namelist options based on config options
         """
-        dt = self.get_dt()
-        self.add_namelist_options({'config_dt': dt})
+        # dt = self.get_dt()
+        # self.add_namelist_options({'config_dt': dt})
         self._get_resources()
 
     def constrain_resources(self, available_cores):

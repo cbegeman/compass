@@ -18,17 +18,18 @@
 <stream name="output"
         type="output"
         filename_template="output.nc"
-        output_interval="0000-00-00_00:12:00"
+        output_interval="0000-00-00_00:00:01"
         clobber_mode="truncate">
 
     <stream name="mesh"/>
-    <var_struct name="tracers"/>
     <var name="layerThickness"/>
     <var name="ssh"/>
     <var name="normalVelocity"/>
     <var name="xtime"/>
     <var name="zMid"/>
-    <var name="tidalInputMask"/>
+    <var name="wettingVelocityFactor"/>
+    <var name="wettingVelocityBaroclinic"/>
+    <var name="wettingVelocityBarotropicSubcycle"/>
 </stream>
 
 </streams>

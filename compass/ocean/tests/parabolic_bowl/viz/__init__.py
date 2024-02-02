@@ -45,8 +45,16 @@ class Viz(Step):
 
         points = self.get_points()
         self.timeseries_plots(points)
-        self.inject_exact_solution()
+        self.inject_exact_solution(overwrite=True)
         self.contour_plots(points)
+        self.contour_plots(points, field_name='columnThickness', sol_min=0,
+                           sol_max=100)
+        self.contour_plots(points, field_name='wettingVelocityFactor0',
+                           x='xEdge', y='yEdge', sol_min=0, sol_max=1)
+        self.contour_plots(points, field_name='wettingVelocityBarotropic0',
+                           x='xEdge', y='yEdge', sol_min=0, sol_max=1)
+        self.contour_plots(points, field_name='wettingVelocityBaroclinic0',
+                           x='xEdge', y='yEdge', sol_min=0, sol_max=1)
         self.rmse_plots()
 
     def get_points(self):
@@ -102,7 +110,7 @@ class Viz(Step):
                    loc='lower center', ncol=4)
         fig.savefig('points.png')
 
-    def inject_exact_solution(self):
+    def inject_exact_solution(self, overwrite=False):
         """
         Save exact solution to output nc file
         """
@@ -110,19 +118,32 @@ class Viz(Step):
         for res in self.resolutions:
             ds = xr.open_dataset(f'output_{res}km.nc')
 
-            if 'ssh_exact' and 'layerThickness_exact' not in ds:
+            if 'wettingVelocityBarotropicSubcycle' in ds:
+                ds['wettingVelocityBarotropic0'] = \
+                    ds.wettingVelocityBarotropicSubcycle
+            if 'wettingVelocityBaroclinic' in ds:
+                ds['wettingVelocityBaroclinic0'] = \
+                    ds.wettingVelocityBaroclinic[:, :, 0]
+            if 'wettingVelocityFactor' in ds:
+                ds['wettingVelocityFactor0'] = \
+                    ds.wettingVelocityFactor[:, :, 0]
+
+            if 'ssh_exact' or 'layerThickness_exact' not in ds or overwrite:
                 time = [dt.datetime.strptime(x.decode(), '%Y-%m-%d_%H:%M:%S')
                         for x in ds.xtime.values]
                 ssh_exact = ds.ssh.copy(deep=True)
+                column_thickness = ds.ssh.copy(deep=True)
                 layerThickness_exact = ds.layerThickness.copy(deep=True)
                 for i, tstep in enumerate(time):
                     t = (time[i] - time[0]).total_seconds()
 
+                    column_thickness[i, :] = ds.bottomDepth.values
                     ssh_exact[i, :] = self.exact_solution(
                         'zeta', ds.xCell.values, ds.yCell.values, t)
                     layerThickness_exact[i, :, 0] = self.exact_solution(
                         'h', ds.xCell.values, ds.yCell.values, t)
                 ds['ssh_exact'] = ssh_exact
+                ds['columnThickness'] = column_thickness
                 ds['layerThickness_exact'] = layerThickness_exact
                 ds.ssh_exact.encoding['_FillValue'] = None
                 ds.layerThickness_exact.encoding['_FillValue'] = None
@@ -130,14 +151,13 @@ class Viz(Step):
                              format="NETCDF3_64BIT_OFFSET", mode='a')
             ds.close()
 
-    def contour_plots(self, points):
+    def contour_plots(self, points, field_name='ssh', x='xCell', y='yCell',
+                      sol_min=-2., sol_max=2.):
         """
         Plot contour plots at a specified output interval for each resolution
         and show where the points used in `points.png` are located.
         """
 
-        sol_min = -2
-        sol_max = 2
         clevels = np.linspace(sol_min, sol_max, 50)
         cmap = plt.get_cmap('RdBu')
 
@@ -145,7 +165,6 @@ class Viz(Step):
         time = [dt.datetime.strptime(x.decode(), '%Y-%m-%d_%H:%M:%S')
                 for x in ds.xtime.values]
         ds.close()
-
         plot_interval = self.config.getint('parabolic_bowl_viz',
                                            'plot_interval')
         for i, tstep in enumerate(time):
@@ -160,10 +179,13 @@ class Viz(Step):
 
             for j, res in enumerate(self.resolutions):
                 ds = xr.open_dataset(f'output_{res}km.nc')
-                ax[j].tricontourf(ds.xCell / 1000, ds.yCell / 1000,
-                                  ds['ssh'][i, :],
-                                  levels=clevels, cmap=cmap,
-                                  vmin=sol_min, vmax=sol_max, extend='both')
+                if field_name not in ds.keys():
+                    raise ValueError(f'{field_name} not in output_{res}km.nc')
+                cm = ax[j].tricontourf(ds[x] / 1000, ds[y] / 1000,
+                                       ds[field_name][i, :],
+                                       levels=clevels, cmap=cmap,
+                                       vmin=sol_min, vmax=sol_max,
+                                       extend='both')
                 ax[j].set_aspect('equal', 'box')
                 ax[j].set_title(f'{res}km resolution')
                 ax[j].set_xlabel('x (km)')
@@ -171,18 +193,19 @@ class Viz(Step):
                 ds.close()
 
             ds = xr.open_dataset(f'output_{min(self.resolutions)}km.nc')
-            cm = ax[ncols - 1].tricontourf(ds.xCell / 1000, ds.yCell / 1000,
-                                           ds['ssh_exact'][i, :],
-                                           levels=clevels, cmap=cmap,
-                                           vmin=sol_min, vmax=sol_max,
-                                           extend='both')
-            ax[ncols - 1].set_aspect('equal', 'box')
-            ax[ncols - 1].scatter(points[:, 0] / 1000,
-                                  points[:, 1] / 1000, 15, 'k')
+            if f'{field_name}_exact' in ds.keys():
+                cm = ax[ncols - 1].tricontourf(ds[x] / 1000, ds[y] / 1000,
+                                               ds[f'{field_name}_exact'][i, :],
+                                               levels=clevels, cmap=cmap,
+                                               vmin=sol_min, vmax=sol_max,
+                                               extend='both')
+                ax[ncols - 1].set_aspect('equal', 'box')
+                ax[ncols - 1].scatter(points[:, 0] / 1000,
+                                      points[:, 1] / 1000, 15, 'k')
 
-            ax[ncols - 1].set_title('Analytical solution')
-            ax[ncols - 1].set_xlabel('x (km)')
-            ax[ncols - 1].set_ylabel('y (km)')
+                ax[ncols - 1].set_title('Analytical solution')
+                ax[ncols - 1].set_xlabel('x (km)')
+                ax[ncols - 1].set_ylabel('y (km)')
             ds.close()
 
             cb = fig.colorbar(cm, ax=ax[-1], shrink=0.6)
@@ -190,7 +213,10 @@ class Viz(Step):
             t = round((time[i] - time[0]).total_seconds() / 86400., 2)
             fig.suptitle((f'{self.wetdry} ({self.ramp_type}) '
                           f'ssh solution at t={t} days'))
-            fig.savefig(f'solution_{i:03d}.png')
+            if field_name == 'ssh':
+                fig.savefig(f'solution_{i:03d}.png')
+            else:
+                fig.savefig(f'{field_name}_{i:03d}.png')
             plt.close()
 
     def rmse_plots(self):
@@ -261,8 +287,9 @@ class Viz(Step):
 
         time = [dt.datetime.strptime(x.decode(), '%Y-%m-%d_%H:%M:%S')
                 for x in ds.xtime.values]
-        ind = time.index(dt.datetime.strptime('0001-01-03_18:00:00',
-                                              '%Y-%m-%d_%H:%M:%S'))
+        ind = -1
+        # ind = time.index(dt.datetime.strptime('0001-01-03_18:00:00',
+        #                                       '%Y-%m-%d_%H:%M:%S'))
         if varname == 'zeta':
             var = ds['ssh'].values[ind, :]
         elif varname == 'h':
