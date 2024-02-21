@@ -115,9 +115,21 @@ class Forward(Step):
         Run this step of the testcase
         """
         # update dt in case the user has changed dt_per_km
-        dt = self.get_dt()
-        self.update_namelist_at_runtime(options={'config_dt': dt},
-                                        out_name='namelist.ocean')
+        config = self.config
+        time_integrator = config.get('parabolic_bowl', 'time_integrator')
+        btr_dt = self.get_dt()
+        bcl_dt_per_km = config.getfloat('parabolic_bowl', 'bcl_dt_per_km')
+        bcl_dt = bcl_dt_per_km * self.resolution
+        bcl_dt = time.strftime('%H:%M:%S', time.gmtime(bcl_dt))
+        if time_integrator == 'split_explicit':
+            dt = bcl_dt
+        else:
+            dt = btr_dt
+        self.update_namelist_at_runtime(
+            options={'config_time_integrator': time_integrator,
+                     'config_btr_dt': btr_dt,
+                     'config_dt': dt},
+            out_name='namelist.ocean')
 
         run_model(self)
 
@@ -132,13 +144,13 @@ class Forward(Step):
         """
         config = self.config
         # dt is proportional to resolution
-        dt_per_km = config.getfloat('parabolic_bowl', 'dt_per_km')
+        btr_dt_per_km = config.getfloat('parabolic_bowl', 'btr_dt_per_km')
 
-        dt = dt_per_km * self.resolution
+        btr_dt = btr_dt_per_km * self.resolution
         # https://stackoverflow.com/a/1384565/7728169
-        dt = time.strftime('%H:%M:%S', time.gmtime(dt))
+        btr_dt = time.strftime('%H:%M:%S', time.gmtime(btr_dt))
 
-        return dt
+        return btr_dt
 
     def _get_resources(self):
         """ get the these properties from the config options """
