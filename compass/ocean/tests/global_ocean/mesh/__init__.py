@@ -126,6 +126,13 @@ class Mesh(TestCase):
             test_case=self, base_mesh_step=base_mesh_step,
             with_ice_shelf_cavities=self.with_ice_shelf_cavities,
             remap_topography=remap_step))
+        if self.with_ice_shelf_cavities:
+            # Add optional step to cull the ice shelf cavities later
+            self.add_step(CullMeshStep(
+                test_case=self, name='cull_mesh_isc',
+                base_mesh_step=base_mesh_step,
+                with_ice_shelf_cavities=False,
+                remap_topography=remap_step))
 
     def configure(self, config=None):
         """
