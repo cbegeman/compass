@@ -184,6 +184,13 @@ class InitialState(Step):
 
         plot_initial_state(input_file_name='initial_state.nc',
                            output_file_name='initial_state.png')
+        ds_init = xr.open_dataset('initial_state.nc')
+        write_netcdf(ds_init, 'initial_state_wISC.nc')
+        ds_mask = xr.open_dataset('../../../mesh/cull_mesh/land_ice_mask.nc')
+        max_level_cell = ds_init.maxLevelCell
+        land_ice_mask = ds_mask.landIceMask
+        ds_init['maxLevelCell'] = xr.where(land_ice_mask, 0., max_level_cell)
+        write_netcdf(ds_init, 'initial_state.nc')
 
     def _get_resources(self):
         # get the these properties from the config options
