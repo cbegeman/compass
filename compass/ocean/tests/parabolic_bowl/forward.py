@@ -12,7 +12,7 @@ class Forward(Step):
     def __init__(self, test_case, resolution,
                  name, use_lts,
                  ramp_type='ramp', coord_type='single_layer',
-                 wetdry='standard'):
+                 time_integrator='rk4', wetdry='standard', use_lts=False):
         """
         Create a new test case
 
@@ -60,6 +60,10 @@ class Forward(Step):
         if wetdry == 'subgrid':
             self.add_namelist_file('compass.ocean.tests.parabolic_bowl',
                                    'namelist.subgrid.forward')
+        if time_integrator != 'rk4':
+            self.add_namelist_options(
+                {'config_time_integrator': f"'{time_integrator}'"})
+
         if use_lts:
             self.add_namelist_options(
                 {'config_time_integrator': "'LTS'",
@@ -99,6 +103,9 @@ class Forward(Step):
         """
         Set namelist options based on config options
         """
+        dt = self.get_dt()
+        self.add_namelist_options({'config_dt': dt})
+        self.add_namelist_options({'config_btr_dt': dt})
         self._get_resources()
 
     def constrain_resources(self, available_cores):

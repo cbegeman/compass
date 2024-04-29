@@ -13,15 +13,19 @@ class ParabolicBowl(TestGroup):
             the MPAS core that this test group belongs to
         """
         super().__init__(mpas_core=mpas_core, name='parabolic_bowl')
-        for wetdry in ['standard', 'subgrid']:
+        for time_integrator in ['RK4', 'split_explicit']:
             for ramp_type in ['ramp', 'noramp']:
+                for wetdry in ['standard', 'subgrid']:
+                    self.add_test_case(
+                        Default(test_group=self,
+                                ramp_type=ramp_type,
+                                wetdry=wetdry,
+                                time_integrator=time_integrator,
+                                use_lts=False))
                 # note: LTS has only standard W/D
-                for use_lts in [True, False]:
-                    if use_lts and wetdry == 'subgrid':
-                        continue
-                    else:
-                        self.add_test_case(
-                            Default(test_group=self,
-                                    ramp_type=ramp_type,
-                                    wetdry=wetdry,
-                                    use_lts=use_lts))
+                self.add_test_case(
+                    Default(test_group=self,
+                            ramp_type=ramp_type,
+                            wetdry='subgrid',
+                            time_integrator=time_integrator,
+                            use_lts=True))
