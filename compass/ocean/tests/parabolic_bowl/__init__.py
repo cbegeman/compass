@@ -16,6 +16,12 @@ class ParabolicBowl(TestGroup):
         for wetdry in ['standard']:  # , 'subgrid']:
             for ramp_type in ['ramp', 'noramp']:
                 # note: LTS has only standard W/D
+                self.add_test_case(
+                    Default(test_group=self,
+                            ramp_type=ramp_type,
+                            wetdry=wetdry,
+                            time_integrator='split_explicit',
+                            use_lts=False))
                 for use_lts in [True, False]:
                     self.add_test_case(
                         Default(test_group=self,

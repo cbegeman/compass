@@ -19,7 +19,8 @@ class Default(TestCase):
         The type of vertical coordinate (``ramp``, ``noramp``, etc.)
     """
 
-    def __init__(self, test_group, ramp_type, wetdry, use_lts):
+    def __init__(self, test_group, ramp_type, wetdry, use_lts,
+                 time_integrator='rk4'):
         """
         Create the test case
 
@@ -42,14 +43,15 @@ class Default(TestCase):
         else:
             name = f'{wetdry}_{ramp_type}'
 
-        if use_lts:
-            subdir = f'{wetdry}/{ramp_type}_lts'
+        if time_integrator != 'rk4':
+            subdir = f'{wetdry}/{ramp_type}_{time_integrator}'
         else:
             subdir = f'{wetdry}/{ramp_type}'
         super().__init__(test_group=test_group, name=name,
                          subdir=subdir)
 
         self.resolutions = None
+        self.time_integrator = time_integrator
         self.wetdry = wetdry
         self.ramp_type = ramp_type
         self.use_lts = use_lts
@@ -58,7 +60,7 @@ class Default(TestCase):
         config = CompassConfigParser()
         config.add_from_package('compass.ocean.tests.parabolic_bowl',
                                 'parabolic_bowl.cfg')
-        self._setup_steps(config, use_lts)
+        self._setup_steps(config, use_lts, time_integrator)
 
     def configure(self):
         """
@@ -66,8 +68,9 @@ class Default(TestCase):
         """
         config = self.config
         use_lts = self.use_lts
+        time_integrator = self.time_integrator
         # set up the steps again in case a user has provided new resolutions
-        self._setup_steps(config, use_lts)
+        self._setup_steps(config, use_lts, time_integrator)
 
         self.update_cores()
 
@@ -109,7 +112,7 @@ class Default(TestCase):
                        str(min_tasks),
                        comment=f'Minimum core count for {res_name} mesh')
 
-    def _setup_steps(self, config, use_lts):
+    def _setup_steps(self, config, use_lts, time_integrator):
         """ setup steps given resolutions """
 
         default_resolutions = '20, 10, 5'
@@ -131,6 +134,7 @@ class Default(TestCase):
         self.steps_to_run = list()
 
         self.resolutions = resolutions
+        self.time_integrator = time_integrator
 
         for resolution in self.resolutions:
 
@@ -151,6 +155,7 @@ class Default(TestCase):
                                   use_lts=use_lts,
                                   resolution=resolution,
                                   ramp_type=self.ramp_type,
+                                  time_integrator=time_integrator,
                                   wetdry=self.wetdry))
         self.add_step(Viz(test_case=self, resolutions=resolutions,
                           use_lts=use_lts))

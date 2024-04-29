@@ -233,7 +233,7 @@ class Viz(Step):
         for i in range(len(self.resolutions) - 1):
             rmse_1st_order[i + 1] = rmse_1st_order[i] / 2.0
 
-        ax.loglog(self.resolutions, np.flip(rmse_1st_order),
+        ax.loglog(self.resolutions, rmse_1st_order,
                   linestyle='-', color='k', alpha=.25, label='1st order')
 
         ax.set_xlabel('Cell size (km)')
