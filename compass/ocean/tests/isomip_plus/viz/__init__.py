@@ -113,8 +113,8 @@ class Viz(Step):
         time = dsOut.daysSinceStartOfSim.values
         fig = plt.figure()
         plt.plot(time, wct_mean, '.')
-        fig.set_xlabel('Time (days)')
-        fig.set_ylabel('Mean thickness of thin film (m)')
+        plt.xlabel('Time (days)')
+        plt.ylabel('Mean thickness of thin film (m)')
         plt.savefig('wct_thin_t.png')
         plt.close()
 
@@ -128,6 +128,7 @@ class Viz(Step):
                 '{}/timeSeriesStatsMonthly*.nc'.format(sim_dir),
                 concat_dim='Time', combine='nested')
 
+            _verify_freshwater_tracer(dsMesh, ds, out_dir)
             if plot_haney:
                 _compute_and_write_haney_number(dsMesh, ds, out_dir,
                                                 showProgress=show_progress)
@@ -161,12 +162,15 @@ class Viz(Step):
             mPlotter.plot_melt_rates()
             mPlotter.plot_ice_shelf_boundary_variables()
             mPlotter.plot_temperature()
+            mPlotter.plot_freshwater()
             mPlotter.plot_salinity()
             mPlotter.plot_potential_density()
 
             mPlotter.images_to_movies(outFolder='{}/movies'.format(out_dir),
                                       framesPerSecond=frames_per_second,
                                       extension=movie_format)
+    def _verify_freshwater_tracer(dsMesh, ds, out_dir):
+       cell_area = dsMesh.areaCell
 
 
 def file_complete(ds, fileName):

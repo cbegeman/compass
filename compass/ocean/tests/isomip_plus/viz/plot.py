@@ -407,6 +407,20 @@ class MoviePlotter(object):
                                oceanDomain=True, units='m/s',
                                vmin=0, vmax=0.05, cmap='cmo.speed')
 
+    def plot_freshwater(self):
+        """
+        Plot a series of images of freshwater concentraion at the sea surface or
+        ice-ocean interface, sea floor and in an x-z section
+        """
+
+        da = self.ds.timeMonthly_avg_freshwaterTracers_landIceFreshwaterConcentration
+        self.plot_3d_field_top_bot_section(da,
+                                           nameInTitle='freshwater concentration',
+                                           prefix='freshwater', units='',
+                                           vmin=1e-8, vmax=1e-3,
+                                           cmap='cmo.ice', cmap_scale='log',
+                                           show_boundaries=False)
+
     def plot_temperature(self):
         """
         Plot a series of images of temperature at the sea surface or
@@ -543,7 +557,9 @@ class MoviePlotter(object):
     def plot_3d_field_top_bot_section(self, da, nameInTitle, prefix,
                                       units=None, vmin=None, vmax=None,
                                       cmap=None, cmap_set_under=None,
-                                      cmap_set_over=None):
+                                      cmap_set_over=None,
+                                      cmap_scale='linear',
+                                      show_boundaries=True):
         """
         Plot a series of images of a given 3D variable showing the value
         at the top (sea surface or ice-ocean interface), sea floor and in an
@@ -599,7 +615,8 @@ class MoviePlotter(object):
                                'top{}'.format(prefix), oceanDomain=True,
                                vmin=vmin, vmax=vmax, cmap=cmap,
                                cmap_set_under=cmap_set_under,
-                               cmap_set_over=cmap_set_over)
+                               cmap_set_over=cmap_set_over,
+                               cmap_scale=cmap_scale)
 
         maxLevelCell = self.dsMesh.maxLevelCell - 1
 
@@ -620,7 +637,8 @@ class MoviePlotter(object):
         self.plot_horiz_series(daBot,
                                'bot {}'.format(nameInTitle),
                                'bot{}'.format(prefix), oceanDomain=True,
-                               vmin=vmin, vmax=vmax, cmap=cmap)
+                               vmin=vmin, vmax=vmax, cmap=cmap,
+                               cmap_scale=cmap_scale)
 
         daSection = da.isel(nCells=self.sectionCellIndices)
 
@@ -649,7 +667,9 @@ class MoviePlotter(object):
             self._plot_vert_field(self.X, self.Z[tIndex, :, :],
                                   field, title=title,
                                   outFileName=outFileName,
-                                  vmin=vmin, vmax=vmax, cmap=cmap)
+                                  vmin=vmin, vmax=vmax, cmap=cmap,
+                                  show_boundaries=show_boundaries,
+                                  cmap_scale=cmap_scale)
             if self.showProgress:
                 bar.update(tIndex + 1)
         if self.showProgress:
@@ -829,7 +849,7 @@ class MoviePlotter(object):
 
     def _plot_vert_field(self, inX, inZ, field, title, outFileName,
                          vmin=None, vmax=None, figsize=(9, 5), cmap=None,
-                         show_boundaries=True):
+                         show_boundaries=True, cmap_scale='linear'):
         try:
             os.makedirs(os.path.dirname(outFileName))
         except OSError:
@@ -840,23 +860,26 @@ class MoviePlotter(object):
 
         plt.figure(figsize=figsize)
         ax = plt.subplot(111)
+
+        X = self.X
+        plt.fill_between(1e-3 * X[0, :], self.zBotSection, y2=0,
+                         facecolor='lightsteelblue', zorder=2)
+        plt.fill_between(1e-3 * X[0, :], self.zBotSection, y2=-750,
+                         facecolor='grey', zorder=1)
+
         if show_boundaries:
+            tIndex = 0
             z_mask = numpy.ones(self.X.shape)
             z_mask[0:-1, 0:-1] *= numpy.where(self.sectionMask, 1., numpy.nan)
-
-            tIndex = 0
             Z = numpy.array(self.Z[tIndex, :, :])
             Z *= z_mask
-            X = self.X
-
-            plt.fill_between(1e-3 * X[0, :], self.zBotSection, y2=0,
-                             facecolor='lightsteelblue', zorder=2)
-            plt.fill_between(1e-3 * X[0, :], self.zBotSection, y2=-750,
-                             facecolor='grey', zorder=1)
             for z_index in range(1, X.shape[0]):
                 plt.plot(1e-3 * X[z_index, :], Z[z_index, :], 'k', zorder=4)
-        plt.pcolormesh(1e-3 * inX, inZ, field, vmin=vmin, vmax=vmax, cmap=cmap,
-                       zorder=3)
+        if cmap is not None and cmap_scale == 'log':
+            cNorm = LogNorm(vmin=vmin, vmax=vmax, clip=False)
+        else:
+            cNorm = Normalize(vmin=vmin, vmax=vmax, clip=False)
+        plt.pcolormesh(1e-3 * inX, inZ, field, cmap=cmap, norm=cNorm, zorder=3)
         plt.colorbar()
         ax.autoscale(tight=True)
         plt.ylim([numpy.amin(inZ), 20])
