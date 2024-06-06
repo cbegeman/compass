@@ -26,6 +26,12 @@ class IsomipPlus(TestGroup):
                 IsomipPlusTest(
                     test_group=self, resolution=resolution,
                     experiment='Ocean0',
+                    vertical_coordinate='z-level'))
+
+            self.add_test_case(
+                IsomipPlusTest(
+                    test_group=self, resolution=resolution,
+                    experiment='Ocean0',
                     vertical_coordinate='sigma'))
 
             for experiment in ['Ocean0']:
