@@ -59,6 +59,19 @@ class Viz(Step):
         """
         # read output.nc
         data = xarray.open_dataset('output.nc')
+        layerThickness = data.layerThickness.isel(Time=-1)
+        temperature = data.temperature.isel(Time=-1)
+        normalVelocity = data.normalVelocity.isel(Time=-1)
+        wettingVelocityFactor = data.wettingVelocityFactor.isel(Time=-1)
+        print('layerThickness min,max = '
+              f'{layerThickness.min()},{layerThickness.max()}')
+        print('temperature min,max = '
+              f'{temperature.min()},{temperature.max()}')
+        print('normalVelocity min,max = '
+              f'{normalVelocity.min()},{normalVelocity.max()}')
+        print('wettingVelocityFactor min,max = '
+              f'{wettingVelocityFactor.min()},{wettingVelocityFactor.max()}')
+
         x_cell = data.xCell.values
         y_cell = data.yCell.values
         ssh = data.ssh.values
