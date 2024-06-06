@@ -44,15 +44,13 @@ class Forward(Step):
         """
 
         self.resolution = resolution
+        res_name = f'{resolution}km'
 
         super().__init__(test_case=test_case, name=name)
 
         self.add_namelist_file('compass.ocean.tests.parabolic_bowl',
                                'namelist.forward')
 
-        res_name = f'{resolution}km'
-        self.add_namelist_file('compass.ocean.tests.parabolic_bowl',
-                               f'namelist.{res_name}.forward')
         self.add_namelist_file('compass.ocean.tests.parabolic_bowl',
                                f'namelist.{coord_type}.forward')
 
@@ -101,8 +99,6 @@ class Forward(Step):
         """
         Set namelist options based on config options
         """
-        # dt = self.get_dt()
-        # self.add_namelist_options({'config_dt': dt})
         self._get_resources()
 
     def constrain_resources(self, available_cores):
