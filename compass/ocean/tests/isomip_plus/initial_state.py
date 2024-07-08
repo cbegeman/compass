@@ -203,14 +203,19 @@ class InitialState(Step):
         init_top_sal = section.getfloat('init_top_sal')
         init_bot_sal = section.getfloat('init_bot_sal')
 
-        # Initialize T,S as linear functions with max depth
-        max_bottom_depth = -config.getfloat('vertical_grid',
-                                            'bottom_depth')
-        frac = (0. - ds.zMid) / (0. - max_bottom_depth)
-        ds['temperature'] = \
-            (1.0 - frac) * init_top_temp + frac * init_bot_temp
-        ds['salinity'] = \
-            (1.0 - frac) * init_top_sal + frac * init_bot_sal
+        if self.vertical_coordinate == 'single_layer':
+            # Initialize constant T,S
+            ds['temperature'] = init_bot_temp * xr.ones_like(ds.zmid)
+            ds['salinity'] = init_bot_sal * xr.ones_like(ds.zmid)
+        else:
+            # Initialize T,S as linear functions with max depth
+            max_bottom_depth = -config.getfloat('vertical_grid',
+                                                'bottom_depth')
+            frac = (0. - ds.zMid) / (0. - max_bottom_depth)
+            ds['temperature'] = \
+                (1.0 - frac) * init_top_temp + frac * init_bot_temp
+            ds['salinity'] = \
+                (1.0 - frac) * init_top_sal + frac * init_bot_sal
 
         if thin_film_present:
             # for thin film cells, set temperature to freezing point
@@ -273,6 +278,13 @@ class InitialState(Step):
                                sectionY=section_y, dsMesh=ds, ds=ds,
                                showProgress=show_progress)
 
+        oceanFracObserved = \
+            ds['oceanFracObserved'].expand_dims(dim='Time', axis=0)
+        landIceThickness = \
+            ds['landIceThickness'].expand_dims(dim='Time', axis=0)
+        landIceGroundedFraction = \
+            ds['landIceGroundedFraction'].expand_dims(dim='Time', axis=0)
+        bottomDepth = ds['bottomDepth'].expand_dims(dim='Time', axis=0)
         totalColThickness = ds.layerThickness.sum(dim='nVertLevels')
         tol = 1e-10
         plotter.plot_horiz_series(ds.landIceMask.expand_dims(
@@ -283,8 +295,7 @@ class InitialState(Step):
                                   dim='Time', axis=0),
                                   'landIceFloatingMask', 'landIceFloatingMask',
                                   True)
-        plotter.plot_horiz_series(ds.landIcePressure.expand_dims(
-                                  dim='Time', axis=0),
+        plotter.plot_horiz_series(ds.landIcePressure,
                                   'landIcePressure', 'landIcePressure',
                                   True, vmin=1e5, vmax=1e7, cmap_scale='log')
         plotter.plot_horiz_series(ds.landIceThickness.expand_dims(
@@ -429,13 +440,6 @@ class InitialState(Step):
         land_ice_fraction_forcing = ds_init.landIceFraction.copy()
         land_ice_floating_fraction_forcing = \
             ds_init.landIceFloatingFraction.copy()
-        land_ice_draft_unscaled = ds_init.landIceDraft.copy()
-        land_ice_draft_scaled = land_ice_draft_unscaled * scales[0]
-        land_ice_draft_limited = np.maximum(land_ice_draft_scaled,
-                                            -ds_init.bottomDepth)
-        land_ice_draft_forcing = land_ice_draft_limited
-        print(f'Grounded cells at {scales[0]}: '
-              f'{np.sum(land_ice_draft_limited == -ds_init.bottomDepth)}')
 
         # We add additional time slices for the remaining scale values
         for scale in scales[1:]:
@@ -453,22 +457,19 @@ class InitialState(Step):
                  ds_init.landIceFloatingFraction],
                 'Time')
 
-            if self.thin_film_present:
-                land_ice_draft_scaled = compute_land_ice_draft_from_pressure(
-                    land_ice_pressure=scale * land_ice_pressure_unscaled,
-                    modify_mask=ds_init.bottomDepth > 0.)
-            else:
-                # Just scale draft in the same manner as pressure
-                land_ice_draft_scaled = land_ice_draft_unscaled * scale
-            land_ice_draft_limited = np.maximum(land_ice_draft_scaled,
-                                                -ds_init.bottomDepth)
-            print(f'Grounded cells at {scale}: '
-                  f'{np.sum(land_ice_draft_limited == -ds_init.bottomDepth)}')
+        if self.thin_film_present:
             # Set the maximum land ice draft in grounded regions
-            land_ice_draft_forcing = xr.concat(
-                [land_ice_draft_forcing,
-                 land_ice_draft_limited],
-                'Time')
+            land_ice_draft_forcing = compute_land_ice_draft_from_pressure(
+                land_ice_pressure=land_ice_pressure_forcing,
+                modify_mask=ds_init.bottomDepth > 0.)
+        else:
+            # Just scale draft in the same manner as pressure
+            land_ice_draft_forcing = ds_init.landIceDraft.copy() * scales[0]
+            for scale in scales[1:]:
+                land_ice_draft_forcing = xr.concat(
+                    [land_ice_draft_forcing,
+                     scale * land_ice_pressure_unscaled],
+                    'Time')
 
         ds_forcing['xtime'] = xr.DataArray(data=dates,
                                            dims=('Time')).astype('S')
