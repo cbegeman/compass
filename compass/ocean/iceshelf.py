@@ -95,8 +95,14 @@ def compute_land_ice_draft_from_pressure(land_ice_pressure, modify_mask,
     gravity = constants['SHR_CONST_G']
     if ref_density is None:
         ref_density = constants['SHR_CONST_RHOSW']
-    land_ice_draft = \
-        - (modify_mask * land_ice_pressure / (ref_density * gravity))
+    if 'Time' not in land_ice_pressure.dims:
+        land_ice_pressure = \
+            land_ice_pressure.expand_dims(dim='Time', axis=0)
+    land_ice_draft_array = \
+        - (modify_mask.values *
+           land_ice_pressure.values / (ref_density * gravity))
+    land_ice_draft = xarray.DataArray(data=land_ice_draft_array,
+                                      dims=('Time', 'nCells'))
     return land_ice_draft
 
 
