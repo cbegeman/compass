@@ -145,6 +145,9 @@ class InitialState(Step):
             land_ice_draft = ds.ssh
             land_ice_pressure = compute_land_ice_pressure_from_draft(
                 land_ice_draft=land_ice_draft, modify_mask=land_ice_draft < 0.)
+            # We need to add the time dimension for plotting purposes
+            land_ice_pressure = \
+                land_ice_pressure.expand_dims(dim='Time', axis=0)
 
         ds['landIcePressure'] = land_ice_pressure
         ds['landIceDraft'] = land_ice_draft
@@ -161,7 +164,7 @@ class InitialState(Step):
         min_depth = -ds.ssh + min_column_thickness
         ds['bottomDepth'] = np.maximum(ds.bottomDepth, min_depth)
         print(f'Adjusted bottomDepth for '
-              f'{np.sum(ds.bottomDepth.values<min_depth.values)} cells '
+              f'{np.sum(ds.bottomDepth.values < min_depth.values)} cells '
               f'to achieve minimum column thickness of {min_column_thickness}')
 
         init_vertical_coord(config, ds)
@@ -217,10 +220,6 @@ class InitialState(Step):
         if self.time_varying_forcing:
             self._write_time_varying_forcing(ds_init=ds,
                                              ice_density=ice_density)
-        else:
-            # We need to add the time dimension for plotting purposes
-            ds['landIcePressure'] = \
-                ds['landIcePressure'].expand_dims(dim='Time', axis=0)
 
         return ds, frac
 
@@ -248,13 +247,10 @@ class InitialState(Step):
                                sectionY=section_y, dsMesh=ds, ds=ds,
                                showProgress=show_progress)
 
-        ssh = ds['ssh'].expand_dims(dim='Time', axis=0)
         oceanFracObserved = \
             ds['oceanFracObserved'].expand_dims(dim='Time', axis=0)
         oceanFracObserved = \
             ds['oceanFracObserved'].expand_dims(dim='Time', axis=0)
-        landIcePressure = \
-            ds['landIcePressure'].expand_dims(dim='Time', axis=0)
         landIceThickness = \
             ds['landIceThickness'].expand_dims(dim='Time', axis=0)
         landIceGroundedFraction = \
@@ -268,13 +264,13 @@ class InitialState(Step):
         plotter.plot_horiz_series(ds.landIceFloatingMask,
                                   'landIceFloatingMask', 'landIceFloatingMask',
                                   True)
-        plotter.plot_horiz_series(landIcePressure,
+        plotter.plot_horiz_series(ds.landIcePressure,
                                   'landIcePressure', 'landIcePressure',
                                   True, vmin=1e5, vmax=1e7, cmap_scale='log')
         plotter.plot_horiz_series(landIceThickness,
                                   'landIceThickness', 'landIceThickness',
                                   True, vmin=0, vmax=1e3)
-        plotter.plot_horiz_series(ssh, 'ssh', 'ssh',
+        plotter.plot_horiz_series(ds.ssh, 'ssh', 'ssh',
                                   True, vmin=-700, vmax=0)
         plotter.plot_horiz_series(bottomDepth,
                                   'bottomDepth', 'bottomDepth',
@@ -403,7 +399,6 @@ class InitialState(Step):
         ds_out = xr.Dataset()
         ds_out['xtime'] = ('Time', dates)
         ds_out['xtime'] = ds_out.xtime.astype('S')
-
         landIceDraft = list()
         landIcePressure = list()
         landIceFraction = list()
@@ -419,7 +414,6 @@ class InitialState(Step):
                 land_ice_pressure=land_ice_pressure,
                 modify_mask=ds_init.bottomDepth > 0.)
             land_ice_draft = np.maximum(land_ice_draft, -ds_init.bottomDepth)
-            land_ice_draft = land_ice_draft.transpose('nCells', 'nVertLevels')
         else:
             land_ice_draft = ds_init.landIceDraft
             land_ice_pressure = ds_init.landIcePressure
@@ -432,7 +426,9 @@ class InitialState(Step):
             # cases allow for the area undergoing melting to change
             landIceFloatingFraction.append(ds_init.landIceFloatingFraction)
 
-        ds_out['landIceDraftForcing'] = xr.concat(landIceDraft, 'Time')
+        landIceDraft = xr.concat(landIceDraft, 'Time')
+        ds_out['landIceDraftForcing'] = \
+            landIceDraft.transpose('Time', 'nCells')
         ds_out.landIceDraftForcing.attrs['units'] = 'm'
         ds_out.landIceDraftForcing.attrs['long_name'] = \
             'The approximate elevation of the land ice-ocean interface'
@@ -449,8 +445,8 @@ class InitialState(Step):
             xr.concat(landIceFloatingFraction, 'Time')
         ds_out.landIceFloatingFractionForcing.attrs['long_name'] = \
             'The fraction of each cell covered by floating land ice'
-        write_netcdf(ds_out, 'land_ice_forcing.nc')
+        ds_out.encoding['unlimited_dims'] = {'Time'}
+        ds_out.to_netcdf('land_ice_forcing.nc')
 
         ds_init['landIceDraft'] = scales[0] * land_ice_draft
-        ds_init['ssh'] = land_ice_draft
         ds_init['landIcePressure'] = scales[0] * land_ice_pressure
