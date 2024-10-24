@@ -134,14 +134,14 @@ class InitialState(Step):
 
         ds['landIceFraction'] = xr.where(mask, ds.landIceFraction, 0.)
 
-        if thin_film_present:
+        if thin_film_present:  # compute full pressure in grounded regions
             land_ice_thickness = ds.landIceThickness
             land_ice_pressure_unscaled = \
                 compute_land_ice_pressure_from_thickness(
                     land_ice_thickness=land_ice_thickness,
                     modify_mask=ds.ssh < 0.,
                     land_ice_density=ice_density)
-        else:
+        else:  # assume floatation pressure everywhere
             land_ice_draft = ds.ssh
             land_ice_pressure_unscaled = compute_land_ice_pressure_from_draft(
                 land_ice_draft=land_ice_draft, modify_mask=land_ice_draft < 0.)
