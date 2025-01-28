@@ -44,7 +44,7 @@ class Default(TestCase):
         self.resolution = resolution
         self.coord_type = coord_type
         if resolution < 1.:
-            res_name = f'{int(resolution*1e3)}m'
+            res_name = f'{int(resolution * 1e3)}m'
         else:
             res_name = f'{int(resolution)}km'
         subdir = f'{coord_type}/{method}/{res_name}/{name}'
@@ -103,4 +103,9 @@ class Default(TestCase):
         """
         Change config options as needed
         """
-        self.config.set('vertical_grid', 'coord_type', self.coord_type)
+        if self.coord_type == 'single_layer':
+            coord_type = 'z-level'
+            self.config.set('vertical_grid', 'vert_levels', '1')
+        else:
+            coord_type = self.coord_type
+        self.config.set('vertical_grid', 'coord_type', coord_type)
