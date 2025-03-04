@@ -12,7 +12,7 @@ class Forward(Step):
     def __init__(self, test_case, resolution,
                  name, use_lts,
                  ramp_type='ramp', coord_type='single_layer',
-                 time_integrator='rk4', wetdry='standard', use_lts=False):
+                 time_integrator='rk4', wetdry='standard'):
         """
         Create a new test case
 
