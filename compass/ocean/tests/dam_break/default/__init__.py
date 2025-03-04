@@ -79,7 +79,6 @@ class Default(TestCase):
             forward_step.add_namelist_options(
                 {'config_zero_drying_velocity_ramp': ".true."})
         self.add_step(forward_step)
->>>>>>> 9315482c31 (Reorganize dam break tests)
         self.add_step(Viz(test_case=self))
 
     def configure(self):
