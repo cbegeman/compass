@@ -12,5 +12,6 @@ config_use_cvmix=.false.
 config_check_ssh_consistency=.false.
 config_compute_active_tracer_budgets=.false.
 config_implicit_constant_bottom_drag_coeff = 0.0
+config_use_spatially_variable_upwind = .true.
 config_use_ssh_gradient_wetting_drying = .true.
 config_btr_bottom_drag = .true.
