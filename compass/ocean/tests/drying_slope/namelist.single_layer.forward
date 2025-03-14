@@ -2,6 +2,7 @@ config_implicit_bottom_drag_type = 'constant'
 config_implicit_constant_bottom_drag_coeff = 3.0e-3
 config_disable_thick_vadv = .true.
 config_disable_thick_sflux = .true.
+config_disable_vel_vmix = .true.
 config_disable_vel_hmix = .true.
 config_disable_vel_vadv = .true.
 config_disable_tr_all_tend = .true.
