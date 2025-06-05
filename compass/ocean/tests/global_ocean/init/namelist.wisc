@@ -1,5 +1,5 @@
 config_land_ice_flux_mode = 'standalone'
-config_init_vertical_grid_type = 'haney-number'
+config_init_vertical_grid_type = 'z-star'
 config_global_ocean_depress_by_land_ice = .true.
 config_global_ocean_use_constant_land_ice_cavity_temperature = .true.
 config_global_ocean_constant_land_ice_cavity_temperature = -1.8
