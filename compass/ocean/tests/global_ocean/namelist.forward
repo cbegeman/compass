@@ -18,3 +18,7 @@ config_use_GM = .true.
 config_AM_mixedLayerDepths_enable = .true.
 config_AM_mixedLayerDepths_compute_interval = 'dt'
 config_submesoscale_enable = .true.
+config_thickness_flux_type = 'upwind'
+config_use_spatially_variable_upwind = .true.
+config_spatially_variable_upwind_hmin = 1.0
+config_spatially_variable_upwind_hmax = 50.0
