@@ -216,13 +216,14 @@ class RemapTopography(Step):
         h5m_filename = f'{stem}.h5m'
         part_filename = f'{stem}.p{self.ntasks}.h5m'
 
-        # Convert source SCRIP to mbtempest
-        args = [
-            'mbconvert', '-B',
-            in_filename,
-            h5m_filename,
-        ]
-        check_call(args, logger)
+        if not os.path.exists(h5m_filename):
+            # Convert source SCRIP to mbtempest
+            args = [
+                'mbconvert', '-B',
+                in_filename,
+                h5m_filename,
+            ]
+            check_call(args, logger)
 
         # Partition source SCRIP
         args = [
