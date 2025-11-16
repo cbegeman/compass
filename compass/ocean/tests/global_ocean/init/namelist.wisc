@@ -1,4 +1,4 @@
-config_land_ice_flux_mode = 'standalone'
+config_land_ice_flux_mode = 'prognostic'
 config_init_vertical_grid_type = 'haney-number'
 config_global_ocean_depress_by_land_ice = .true.
 config_global_ocean_use_constant_land_ice_cavity_temperature = .true.

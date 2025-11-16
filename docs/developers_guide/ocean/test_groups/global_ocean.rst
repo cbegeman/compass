@@ -1244,8 +1244,8 @@ and example:
 
 The ``land_ice_flux_mode`` only matters for versions of the mesh with ice-shelf
 cavities.  Fluxes below ice shelves can be off
-(``land_ice_flux_mode: pressure_only``), prognostic
-(``land_ice_flux_mode: standalone``), or come from data
+(``land_ice_flux_mode: off``), prognostic
+(``land_ice_flux_mode: prognostic``), or come from data
 (``land_ice_flux_mode: data``, the suggested approach).  All steps run with
 the same ``land_ice_flux_mode``.
 

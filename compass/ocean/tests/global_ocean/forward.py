@@ -39,7 +39,7 @@ class ForwardStep(Step):
     def __init__(self, test_case, mesh, time_integrator, init=None,
                  name='forward', subdir=None, ntasks=None, min_tasks=None,
                  openmp_threads=None, get_dt_from_min_res=True,
-                 land_ice_flux_mode='pressure_only', add_metadata=True,
+                 land_ice_flux_mode='off', add_metadata=True,
                  **kwargs):
         """
         Create a new step
@@ -81,9 +81,9 @@ class ForwardStep(Step):
             ``config_btr_dt`` namelist options from the minimum resolution of
             the mesh
 
-        land_ice_flux_mode : {'pressure_only', 'standalone', 'data'}, optional
-            Whether to have no ice-shelf melt fluxes ("pressure_only"),
-            prognostic melt ("standalone") or data melt from a
+        land_ice_flux_mode : {'off', 'prognostic', 'data'}, optional
+            Whether to have no ice-shelf melt fluxes ("off"),
+            prognostic melt ("prognostic") or data melt from a
             satellite-derived climatology ("data").
 
         add_metadata : bool, optional

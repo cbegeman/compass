@@ -69,7 +69,7 @@ class DynamicAdjustment(ForwardTestCase):
         if 'land_ice_flux_mode' in options_dict:
             land_ice_flux_mode = options_dict['land_ice_flux_mode']
         else:
-            land_ice_flux_mode = 'pressure_only'
+            land_ice_flux_mode = 'off'
 
         if 'get_dt_from_min_res' not in options_dict:
             raise ValueError(f'{yaml_filename} in {mesh.package} does not '

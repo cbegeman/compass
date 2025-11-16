@@ -1,5 +1,5 @@
 dynamic_adjustment:
-  land_ice_flux_mode: pressure_only
+  land_ice_flux_mode: off
   get_dt_from_min_res: False
 
   steps:

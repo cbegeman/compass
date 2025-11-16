@@ -1,6 +1,6 @@
 config_time_integrator='RK4'
 config_thickness_flux_type='upwind'
-config_land_ice_flux_mode='standalone'
+config_land_ice_flux_mode='prognostic'
 config_vert_advection_method='flux-form'
 config_use_wetting_drying=.true.
 config_drying_safety_height=1e-10
