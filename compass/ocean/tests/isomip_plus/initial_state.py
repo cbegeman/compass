@@ -193,6 +193,11 @@ class InitialState(Step):
               f'{np.sum(ds.bottomDepth.values < min_depth.values)} cells '
               f'to achieve minimum column thickness of {min_column_thickness}')
 
+        land_ice_conductive_heat_flux = \
+            section.getfloat('land_ice_conductive_heat_flux')
+        ds['landIceConductiveHeatFlux'] = \
+            land_ice_conductive_heat_flux * xr.ones_like(land_ice_draft)
+
         # Initialize vertical coordinate without time dimension
         ds = ds.isel(Time=0)
         init_vertical_coord(config, ds)
