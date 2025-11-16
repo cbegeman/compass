@@ -216,24 +216,28 @@ class RemapTopography(Step):
         h5m_filename = f'{stem}.h5m'
         part_filename = f'{stem}.p{self.ntasks}.h5m'
 
-        # Convert source SCRIP to mbtempest
-        args = [
-            'mbconvert', '-B',
-            in_filename,
-            h5m_filename,
-        ]
-        # run in "parallel" with one task and one thread for Intel-MPI support
-        run_command(args, 1, 1, 1, self.config, logger)
+        if not os.path.exists(h5m_filename):
+            # Convert source SCRIP to mbtempest
+            args = [
+                'mbconvert', '-B',
+                in_filename,
+                h5m_filename,
+            ]
+            # run in "parallel" with one task and one thread for Intel-MPI
+            # support
+            run_command(args, 1, 1, 1, self.config, logger)
 
-        # Partition source SCRIP
-        args = [
-            'mbpart', f'{self.ntasks}',
-            '-z', 'RCB',
-            h5m_filename,
-            part_filename,
-        ]
-        # run in "parallel" with one task and one thread for Intel-MPI support
-        run_command(args, 1, 1, 1, self.config, logger)
+        if not os.path.exists(part_filename):
+            # Partition source SCRIP
+            args = [
+                'mbpart', f'{self.ntasks}',
+                '-z', 'RCB',
+                h5m_filename,
+                part_filename,
+            ]
+            # run in "parallel" with one task and one thread for Intel-MPI
+            # support
+            run_command(args, 1, 1, 1, self.config, logger)
 
         logger.info('  Done.')
 
@@ -249,19 +253,20 @@ class RemapTopography(Step):
         if method != 'conserve':
             raise ValueError(f'Unsupported method {method} for TempestRemap')
 
-        args = [
-            'mbtempest', '--type', '5',
-            '--load', f'source.scrip.p{self.ntasks}.h5m',
-            '--load', f'target.scrip.p{self.ntasks}.h5m',
-            '--file', f'map_source_to_target_{method}.nc',
-            '--weights', '--gnomonic',
-            '--boxeps', '1e-9',
-        ]
+        if not os.path.exists(f'map_source_to_target_{method}.nc'):
+            args = [
+                'mbtempest', '--type', '5',
+                '--load', f'source.scrip.p{self.ntasks}.h5m',
+                '--load', f'target.scrip.p{self.ntasks}.h5m',
+                '--file', f'map_source_to_target_{method}.nc',
+                '--weights', '--gnomonic',
+                '--boxeps', '1e-9',
+            ]
 
-        run_command(
-            args, self.cpus_per_task, self.ntasks,
-            self.openmp_threads, self.config, self.logger,
-        )
+            run_command(
+                args, self.cpus_per_task, self.ntasks,
+                self.openmp_threads, self.config, self.logger,
+            )
 
         logger.info('  Done.')
 
@@ -302,14 +307,15 @@ class RemapTopography(Step):
         config = self.config
         method = config.get('remap_topography', 'method')
 
-        # Build command args
-        args = [
-            'ncremap',
-            '-m', f'map_source_to_target_{method}.nc',
-            '--vrb=1',
-            'topography.nc', 'topography_ncremap.nc',
-        ]
-        check_call(args, logger)
+        if not os.path.exists('topography_ncremap'):
+            # Build command args
+            args = [
+                'ncremap',
+                '-m', f'map_source_to_target_{method}.nc',
+                '--vrb=1',
+                'topography.nc', 'topography_ncremap.nc',
+            ]
+            check_call(args, logger)
 
         logger.info('  Done.')
 

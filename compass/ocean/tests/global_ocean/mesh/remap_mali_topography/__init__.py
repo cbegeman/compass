@@ -211,19 +211,20 @@ class RemapMaliTopography(RemapTopography):
         logger = self.logger
         logger.info('Create weights file')
 
-        args = [
-            'mbtempest', '--type', '5',
-            '--load', f'mali.scrip.p{self.ntasks}.h5m',
-            '--load', f'mpaso.scrip.p{self.ntasks}.h5m',
-            '--file', map_filename,
-            '--weights', '--gnomonic',
-            '--boxeps', '1e-9',
-        ]
+        if not os.path.exists(map_filename):
+            args = [
+                'mbtempest', '--type', '5',
+                '--load', f'mali.scrip.p{self.ntasks}.h5m',
+                '--load', f'mpaso.scrip.p{self.ntasks}.h5m',
+                '--file', map_filename,
+                '--weights', '--gnomonic',
+                '--boxeps', '1e-9',
+            ]
 
-        run_command(
-            args, self.cpus_per_task, self.ntasks,
-            self.openmp_threads, self.config, self.logger,
-        )
+            run_command(
+                args, self.cpus_per_task, self.ntasks,
+                self.openmp_threads, self.config, self.logger,
+            )
 
         logger.info('  Done.')
 
